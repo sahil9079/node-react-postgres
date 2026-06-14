@@ -41,7 +41,6 @@ app.use(express.static(path.join(__dirname, "images")))
 
 // handling gzip compression
 app.use(compression())
-
 // redirecting incoming requests to api.js
 app.use(`/api/${process.env.API_VERSION}`, api)
 
