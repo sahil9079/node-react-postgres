@@ -1,0 +1,22 @@
+services:
+  apiserver:
+     build: ./apiserver
+     env_file: ./apiserver/.config.env
+     ports: 
+        - "8010:8010"
+  client:
+     build: ./client
+     ports: 80:80
+  db:
+     image: postgres:15-alpine
+     restart: always
+     ports:
+        - "5432:5432"
+     environment:
+        POSTGRES_PASSWORD: mypassword
+        POSTGRES_USER: postgres
+        POSTGRES_DB: sampledb
+     volumes:
+        - dbdata:/var/lib/postgresql/data
+volumes:
+  dbdata: {}    
