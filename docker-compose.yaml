@@ -3,6 +3,7 @@ version: '3.8'
 services:
 
    db:
+
       image: postgres:15-alpine
       restart: always
       ports:
@@ -21,8 +22,8 @@ services:
 
    apiserver:
       build: ./apiserver
-      image: sahil9079/js-apiserver:latest
       env_file: ./apiserver/.config.env
+      image: sahil9079/js-apiserver:latest
       ports:
          - "8010:8010"
       depends_on:
@@ -34,6 +35,8 @@ services:
       image: sahil9079/js-client:latest
       ports:
          - "80:80"
+      depends_on:
+         - apiserver
 
 volumes:
    dbdata: {}
