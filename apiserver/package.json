@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:integration": "jest --testMatch='**/__tests__/integration/**/*.test.js'",
+    "test:unit": "jest --testMatch='**/__tests__/unit/**/*.test.js'"
   },
   "author": "DD",
   "license": "ISC",
@@ -25,5 +28,12 @@
     "sequelize": "^6.13.0",
     "sharp": "^0.30.7",
     "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^8.0.1",
+    "@babel/preset-env": "^8.0.2",
+    "@babel/types": "^8.0.0",
+    "jest": "^30.4.2",
+    "supertest": "^7.2.2"
   }
 }
