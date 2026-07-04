@@ -23,7 +23,7 @@ services:
    apiserver:
       build: ./apiserver
       env_file: ./apiserver/.config.env
-      image: sahil9079/js-apiserver:latest
+      image: sahil9079/js-apiserver:v1.1.0
       ports:
          - "8010:8010"
       depends_on:
@@ -32,7 +32,7 @@ services:
 
    client:
       build: ./client
-      image: sahil9079/js-client:latest
+      image: sahil9079/js-client:v1.1.0
       ports:
          - "80:80"
       depends_on:
