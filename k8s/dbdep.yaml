@@ -1,42 +1,54 @@
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
- name: postgres-deployment
- labels:
-   app: postgres-db
+  name: postgres-deployment
+  namespace: node-react-app
+  labels:
+    app: postgres-db
+
 spec:
- replicas: 1
- selector:
-   matchLabels:
-     app: postgres-db
- template:
-   metadata:
-     labels:
-       app: postgres-db
-   spec:
-     containers:
-     - name: database
-       image: postgres:15-alpine
-       volumemounts:
-         - name: db-storage
-           mountPath: /var/lib/postgresql/data
-       ports:
-       - name: postgresdb-port
-           containerPort: 5432
-       env:
-       - name: POSTGRES_USER 
-         valueFrom:
-           secretKeyRef:
-             name: my-secret
-             key: username    
-       - name: POSTGRES_PASSWORD   
-         valueFrom:
-           secretKeyRef:
-             name: my-secret
-             key: password 
-       - name: POSTGRES_DB
-         value: sampledb         
-     volumes:
-      - name: db-storage
-        persistentVolumeClaim:
-          claimName: db-pvc    
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: postgres-db
+
+  template:
+    metadata:
+      labels:
+        app: postgres-db
+
+    spec:
+      containers:
+        - name: database
+          image: postgres:15-alpine
+
+          volumeMounts:
+            - name: db-storage
+              mountPath: /var/lib/postgresql/data
+
+          ports:
+            - name: postgresdb-port
+              containerPort: 5432
+
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: my-secret
+                  key: username
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: my-secret
+                  key: password
+
+            - name: POSTGRES_DB
+              value: sampledb
+
+      volumes:
+        - name: db-storage
+          persistentVolumeClaim:
+            claimName: db-pvc
