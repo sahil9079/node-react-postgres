@@ -1,0 +1,90 @@
+name: deploy workflow
+
+on:
+  push:
+    branches:
+      - main
+    
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+    testing:
+      runs-on: ubuntu-latest
+      strategy:
+        matrix:
+          service: [apiserver,client]
+      steps:
+        - name: checkout code
+          uses: actions/checkout@v3
+          with:
+            fetch-depth: 0
+          
+        - name: unit testing
+          uses: actions/setup-node@v4
+        - run: npm ci
+          working-directory: ${{ matrix.service }}
+        - run: npm test -- --coverage
+          working-directory: ${{ matrix.service}}
+
+    sonarqube:
+      needs: testing
+      runs-on: ubuntu-latest
+      steps:
+        - name: checkout code
+          uses: actions/checkout@v3
+          with:
+            fetch-depth: 0
+
+        - name: SonarCloud Scan
+          uses: SonarSource/sonarqube-scan-action@v5.2.0
+          env:
+            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+        
+    security:
+      needs: testing
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+
+        - name: Run npm audit for API Server
+          run: |
+            cd apiserver
+            npm audit --json > npm-audit-apiserver.json || true
+
+        - name: Run npm audit for Client
+          run: |
+           cd client
+           npm audit --json > npm-audit-client.json || true
+           
+        - name: Upload npm Audit Reports
+          uses: actions/upload-artifact@v4
+          with:
+            name: npm-audit-reports
+            path: |
+              apiserver/npm-audit-apiserver.json
+              client/npm-audit-client.json
+        
+
+        - name: Run Trivy Security Scan
+          uses: aquasecurity/trivy-action@v0.36.0
+          with:
+            scan-type: fs
+            path: .
+            format: json
+            exit-code: 0
+            vulnerabitlity-type: os,library
+            output: trivy-report.json
+        
+        - name: Upload Trivy scan results as Artifact
+          uses: actions/upload-artifact@v4
+          with:
+            name: trivy-scan-results
+            path: trivy-report.json
+
+          
+
