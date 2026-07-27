@@ -19,8 +19,8 @@ spec:
      - name: apiserver
        image: sahil9079/js-apiserver:v1.1.0
        ports:
-        - name: apiserver-port
-          containerPort: 8010 
+         - name: apiserver-port
+           containerPort: 8010
        envFrom:
          - configMapRef:
               name: configmap   

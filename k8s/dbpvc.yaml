@@ -3,7 +3,7 @@ kind: PersistentVolumeClaim
 metadata:
  name: db-pvc
  namespace: node-react-app
- lables:
+  labels:
    app: postgres-db
 spec:
  accessModes:
