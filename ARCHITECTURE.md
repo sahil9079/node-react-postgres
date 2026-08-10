@@ -191,8 +191,6 @@ Multiple testing layers, each serving a specific purpose:
 ```
          ╱  Unit (57)  — Fast, isolated, catch logic errors
 Testing ╱   Integration (5)  — API contract validation
-        ╲   E2E (Cypress)  — User flow simulation
-         ╲  Load (k6)  — Performance under concurrency
 ```
 
 ### Coverage Thresholds (Jest)
