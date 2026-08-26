@@ -56,10 +56,11 @@ interview-notes/
 │   ├── 06-full-stack-observability-and-sre-slos.md  # Prometheus, Loki, SLI/SLO/SLA, Error Budgets
 │   └── 07-iam-least-privilege-and-irsa.md           # IRSA, Pod Identity, GitHub Actions OIDC
 │
-└── 05-project-deep-dive/                            # 🎯 PROJECT DEFENSE & INTERVIEWS
+└── 05-project-deep-dive/                            # 🎯 PROJECT DEFENSE & TECHNICAL INTERVIEWS
     ├── 01-project-overview-and-elevator-pitch.md    # 60-second pitch, tech stack breakdown
     ├── 02-dockerfiles-and-compose-defense.md        # Line-by-line defense of all Dockerfiles
     ├── 03-kubernetes-manifests-deep-dive.md         # Explaining envFrom, selectors, volume mounts
     ├── 04-cicd-workflow-and-testing-strategy.md     # Unit vs integration tests, coverage gates
-    └── 05-troubleshooting-stories-and-interviews.md # Jest 25 fix story, SonarQube persistence story
+    ├── 05-troubleshooting-stories-and-interviews.md # Jest 25 fix story, SonarQube persistence story
+    └── 06-versions-gateways-and-ingress-best-practices.md # ⭐ Stack Versions, Gateways & Ingress Best Practices
 ```

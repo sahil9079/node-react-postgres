@@ -14,7 +14,7 @@ flowchart TD
     Phase3["PHASE 3: Level 2 Decisions & Trade-Offs (2 Years)\n(Why/How, Request Flow, S3 State, Quality Gates)"]
     Phase4["PHASE 4: Level 3 Production Incidents (3–3.5 Years)\n(P0/P1 Outages, Triage, 500/502, CrashLoop, Rollbacks, RCA)"]
     Phase5["PHASE 5: Level 4 System Design & Scale (4 Years)\n(1M Users, Multi-AZ, Karpenter, SRE SLOs)"]
-    Phase6["PHASE 6: Final Project Defense & Mock Drill\n(60s Pitch, Troubleshooting Stories, Mock Interview)"]
+    Phase6["PHASE 6: Final Project Defense & Mock Drill\n(60s Pitch, Versions & Ingress, Troubleshooting Stories)"]
 
     Phase1 --> Phase2 --> Phase3 --> Phase4 --> Phase5 --> Phase6
 ```
@@ -55,7 +55,6 @@ flowchart TD
   5. [`05-aws-cloud-fundamentals.md`](01-level-1-fundamentals/05-aws-cloud-fundamentals.md) — EC2, VPC, EKS, ALB, EBS, IAM basics, Security Groups vs NACLs.
   6. [`06-cicd-pipeline-fundamentals.md`](01-level-1-fundamentals/06-cicd-pipeline-fundamentals.md) — CI vs CD, GitHub Actions matrix builds, triggers.
   7. [`07-terraform-iac-fundamentals.md`](01-level-1-fundamentals/07-terraform-iac-fundamentals.md) — IaC lifecycle (`init`, `plan`, `apply`, `destroy`), state file.
-* **Checkpoint Question:** *"Explain the difference between `kill -15` and `kill -9` and walk me through your `apiserver/Dockerfile`."*
 
 ---
 
@@ -70,7 +69,6 @@ flowchart TD
   4. [`04-kubernetes-networking-and-storage.md`](02-level-2-intermediate/04-kubernetes-networking-and-storage.md) — CoreDNS, Service ports (`port` vs `targetPort` vs `nodePort`), EBS CSI storage.
   5. [`05-terraform-state-locking-and-drift.md`](02-level-2-intermediate/05-terraform-state-locking-and-drift.md) — S3 backend + DynamoDB locking (`LockID`), detecting drift (`-detailed-exitcode`).
   6. [`06-cicd-quality-gates-and-devsecops.md`](02-level-2-intermediate/06-cicd-quality-gates-and-devsecops.md) — Enforcing 50% Jest coverage, SonarQube, Trivy scanning, Git SHA image tags.
-* **Checkpoint Question:** *"Why did you choose `type: LoadBalancer` instead of an Ingress Controller, and when would you switch to Ingress?"*
 
 ---
 
@@ -89,7 +87,6 @@ flowchart TD
   8. [`08-load-balancer-health-checks-and-networking.md`](03-level-3-production-incidents/08-load-balancer-health-checks-and-networking.md) — Unhealthy targets, `127.0.0.1` vs `0.0.0.0` binding, security groups.
   9. [`09-zero-downtime-rollback-playbook.md`](03-level-3-production-incidents/09-zero-downtime-rollback-playbook.md) — Live `kubectl rollout undo` and backward-compatible database migrations (Expand/Contract).
   10. [`10-blameless-post-mortem-and-rca-writing.md`](03-level-3-production-incidents/10-blameless-post-mortem-and-rca-writing.md) — Writing a 5-Whys Root Cause Analysis report.
-* **Checkpoint Question:** *"Production is throwing HTTP 500 errors after a release. Walk me through your triage, mitigation, rollback, and RCA process."*
 
 ---
 
@@ -105,18 +102,18 @@ flowchart TD
   5. [`05-disaster-recovery-rto-rpo-and-backups.md`](04-level-4-system-design-and-architecture/05-disaster-recovery-rto-rpo-and-backups.md) — RTO & RPO definitions, Backup & Restore vs Warm Standby vs Active-Active.
   6. [`06-full-stack-observability-and-sre-slos.md`](04-level-4-system-design-and-architecture/06-full-stack-observability-and-sre-slos.md) — Prometheus, Grafana, Loki, SLI, SLO, SLA, and Error Budget policies.
   7. [`07-iam-least-privilege-and-irsa.md`](04-level-4-system-design-and-architecture/07-iam-least-privilege-and-irsa.md) — IAM Roles for Service Accounts (IRSA) and GitHub Actions OIDC.
-* **Checkpoint Question:** *"Your application handles 10,000 users. Traffic is projected to reach 1 Million. Redesign the compute, database, and caching tiers."*
 
 ---
 
-### 🔹 PHASE 6: Project Defense & Mock Interview Drill (Day 15+)
-> **Goal:** Perfect your verbal delivery, pitch, and behavioral responses.
+### 🔹 PHASE 6: Project Defense, Versions & Mock Drill (Day 15+)
+> **Goal:** Perfect your verbal delivery, stack version defense, pitch, and behavioral responses.
 
 * 📖 **Folder to Study:** [`05-project-deep-dive/`](05-project-deep-dive/)
 * **Order of Reading:**
   1. [`01-project-overview-and-elevator-pitch.md`](05-project-deep-dive/01-project-overview-and-elevator-pitch.md) — **Memorize the 60-second pitch** and practice delivering it out loud.
-  2. [`02-dockerfiles-and-compose-defense.md`](05-project-deep-dive/02-dockerfiles-and-compose-defense.md) & [`03-kubernetes-manifests-deep-dive.md`](05-project-deep-dive/03-kubernetes-manifests-deep-dive.md) — Answer all file-specific questions.
-  3. [`05-troubleshooting-stories-and-interviews.md`](05-project-deep-dive/05-troubleshooting-stories-and-interviews.md) — Practice the **Jest 25 upgrade story** and the **SonarQube Docker persistence story**.
+  2. [`06-versions-gateways-and-ingress-best-practices.md`](05-project-deep-dive/06-versions-gateways-and-ingress-best-practices.md) — **Master exact stack versions (Node 18 LTS, React 17, Postgres 15, Nginx 1.29), Ingress vs Gateways, and ALB annotations.**
+  3. [`02-dockerfiles-and-compose-defense.md`](05-project-deep-dive/02-dockerfiles-and-compose-defense.md) & [`03-kubernetes-manifests-deep-dive.md`](05-project-deep-dive/03-kubernetes-manifests-deep-dive.md) — Answer all file-specific questions.
+  4. [`05-troubleshooting-stories-and-interviews.md`](05-project-deep-dive/05-troubleshooting-stories-and-interviews.md) — Practice the **Jest 25 upgrade story** and the **SonarQube Docker persistence story**.
 
 ---
 
@@ -124,8 +121,9 @@ flowchart TD
 
 On the day of your interview, do **not** re-read all 30 files. Simply review:
 1. **The 60-second elevator pitch** in [`05-project-deep-dive/01-project-overview-and-elevator-pitch.md`](05-project-deep-dive/01-project-overview-and-elevator-pitch.md).
-2. **The 3 golden rules:**
+2. **The exact versions breakdown** in [`05-project-deep-dive/06-versions-gateways-and-ingress-best-practices.md`](05-project-deep-dive/06-versions-gateways-and-ingress-best-practices.md).
+3. **The 3 golden rules:**
    * *"Mitigate first (restore uptime), investigate root cause second."*
    * *"Tag container images with Git Commit SHAs, never `latest` in production."*
    * *"Separate state per environment with S3 KMS encryption and DynamoDB locking."*
-3. **The system architecture diagram** in [`ARCHITECTURE.md`](../ARCHITECTURE.md).
+4. **The system architecture diagram** in [`ARCHITECTURE.md`](../ARCHITECTURE.md).
