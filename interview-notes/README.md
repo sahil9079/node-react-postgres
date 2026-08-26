@@ -1,104 +1,67 @@
-# Micro1 DevOps Interview — Complete Revision Kit
+# Complete DevOps Technical Interview Preparation Kit
 
-> **Target:** 1-year DevOps engineer · Full revision from basics to advanced
-> **Time:** 25 days gap — this kit is built for rapid, structured revision
-
----
-
-## How to Use This Kit
-
-| # | Step | Time |
-|---|---|---|
-| 1 | Read **01-cicd.md** (CI/CD) | Day 1 |
-| 2 | Read **02-terraform.md** (Terraform/IaC) | Day 2 |
-| 3 | Read **03-kubernetes.md** (K8s) | Days 3-4 |
-| 4 | Read **04-aws-eks.md** (AWS/EKS/Deployment) | Day 5 |
-| 5 | Read **05-devsecops.md** (DevSecOps) | Day 6 |
-| 6 | Drill **06-cheatsheet.md** daily | 30 min/day |
-| 7 | Re-read this index + attempt mock answers out loud | Day 7+ |
-
-**Memory rules for interviews:**
-- Always answer in **3 parts**: Definition → Why it matters → Example/when-to-use
-- If you don't know: say "I haven't done X, but here's how I'd approach it" — never bluff
-- Link concepts: e.g., Ingress → LoadBalancer → NodePort → ClusterIP is a *story*, not facts
+> **Target Experience Levels:** 1-Year $\to$ 2-Year $\to$ 3.5-Year $\to$ 4-Year Senior DevOps / Platform Engineer  
+> **Project Foundation:** 3-Tier Web Platform (React 17 + Express 4 + PostgreSQL 15) with Docker Multi-Stage builds, Kubernetes (EKS), and GitHub Actions CI/CD.
 
 ---
 
-## Topic Index
-
-### [01-cicd.md](01-cicd.md) — CI/CD & Continuous Integration
-- PR vs merge vs nightly checks
-- Quality gates (tests, coverage, SonarQube)
-- Flaky tests, override governance, break-glass
-- Branch protection, rollbacks, promotion
-
-### [02-terraform.md](02-terraform.md) — Terraform / IaC
-- Modules, workspaces, environments
-- Remote state (S3 + DynamoDB locking)
-- Drift detection & resolution
-- Secrets, review workflow, CI/CD runs
-
-### [03-kubernetes.md](03-kubernetes.md) — Kubernetes
-- Deployment vs StatefulSet vs DaemonSet
-- Services (ClusterIP/NodePort/LoadBalancer/Ingress)
-- Volumes, StorageClass, probes, resources, HPA
-- Rollouts, rollbacks, troubleshooting
-
-### [04-aws-eks.md](04-aws-eks.md) — AWS / EKS / Deployment
-- EKS deploy flow, ECR integration
-- OIDC vs long-lived keys
-- Blue-green, canary, rollback strategies
-- Monitoring after deploy
-
-### [05-devsecops.md](05-devsecops.md) — DevSecOps
-- SAST / DAST / SCA / container scanning
-- Trivy, CVEs, secrets management
-- Quality gates that block deploys
-- Security exceptions
-
-### [06-cheatsheet.md](06-cheatsheet.md) — Quick Revision Cheat Sheet
-- One-line definitions for every concept
-- Comparison tables (interview favorites)
-- Command quick-reference
-- "Say this in interviews" phrases
-
-### [07-project-explanation.md](07-project-explanation.md) — Project Explanation
-- 30-second elevator pitch (memorize)
-- Your 10 K8s manifests explained
-- Docker/Dockerfile details + troubleshooting stories
-- How to answer "walk me through your project"
-
----
-
-## The 5 Core Mental Models (know these cold)
+## 🗂 Complete Folder & File Directory
 
 ```
-1. CI/CD Pipeline:  Commit → Test → Build → Scan → Push → Deploy → Monitor
-2. K8s Scheduling:   Pod specs → ReplicaSet → Deployment → Service → Ingress
-3. IaC Lifecycle:    Plan → Review → Apply → State → Drift → Remediate
-4. Security:         Shift-left (scan early) → Gate → Verify → Monitor
-5. Deploy Strategies: Rolling → Blue/Green → Canary (risk increases quality)
+interview-notes/
+│
+├── 01-level-1-fundamentals/                         # 🟢 LEVEL 1 (1 Year Experience)
+│   ├── 01-linux-fundamentals.md                     # Linux CPU, Memory, Disk, Inodes, Kill, SSH
+│   ├── 02-git-github-fundamentals.md                # Git merge vs rebase, conflicts, safe revert
+│   ├── 03-docker-containers-fundamentals.md         # Docker vs VM, Dockerfile line-by-line, Compose
+│   ├── 04-kubernetes-fundamentals.md                # K8s 101, all 10 manifests explained, kubectl CLI
+│   ├── 05-aws-cloud-fundamentals.md                 # EC2, VPC, EKS, ALB, EBS, IAM, SG vs NACL
+│   ├── 06-cicd-pipeline-fundamentals.md             # CI/CD basics, GitHub Actions workflow anatomy
+│   └── 07-terraform-iac-fundamentals.md             # IaC lifecycle, init/plan/apply/destroy, state
+│
+├── 02-level-2-intermediate/                         # 🟡 LEVEL 2 (2 Year Experience)
+│   ├── 01-architecture-decisions-and-tradeoffs.md   # Defending LoadBalancer vs Ingress, baked Nginx
+│   ├── 02-complete-network-and-request-flow.md      # Packet flow: Browser -> ALB -> Nginx -> API -> DB
+│   ├── 03-docker-troubleshooting-and-optimization.md# Cross-arch buildx, permissions, image sizes
+│   ├── 04-kubernetes-networking-and-storage.md      # CoreDNS, Service ports, EBS CSI PVC lifecycle
+│   ├── 05-terraform-state-locking-and-drift.md      # S3 + DynamoDB locking, detecting state drift
+│   └── 06-cicd-quality-gates-and-devsecops.md       # Jest 50% coverage, SonarQube, Trivy, Git SHA tags
+│
+├── 03-level-3-production-incidents/                 # 🟠 LEVEL 3 (3–3.5 Year Experience)
+│   ├── 01-enterprise-p0-p1-incident-management.md   # Incident Commander protocol, war room, MTTR/MTTD
+│   ├── 02-http-500-and-backend-crash-triage.md      # Unhandled exceptions, Sequelize disconnects
+│   ├── 03-http-502-bad-gateway-and-nginx-triage.md  # Upstream connection refused, DNS mismatch
+│   ├── 04-crashloopbackoff-and-oomkilled-triage.md  # Exit codes 1/137/143, DB initContainer fix
+│   ├── 05-cpu-100-percent-and-memory-leaks.md       # Event loop lag, ReDoS, V8 heap dump triage
+│   ├── 06-disk-full-and-pvc-expansion.md            # Worker node prune, dynamic EBS PVC expansion
+│   ├── 07-database-connection-and-deadlock-triage.md# Connection pool exhaustion, long SQL queries
+│   ├── 08-load-balancer-health-checks-and-networking.md # Unhealthy targets, 0.0.0.0 binding, SGs
+│   ├── 09-zero-downtime-rollback-playbook.md        # Emergency rollout undo, backward-compatible DB
+│   └── 10-blameless-post-mortem-and-rca-writing.md  # The 5 Whys, timeline, preventative actions
+│
+├── 04-level-4-system-design-and-architecture/       # 🔴 LEVEL 4 (4 Year Senior / Platform Architect)
+│   ├── 01-scaling-to-1m-users-system-design.md      # S3+CloudFront, ALB Ingress, RDS Multi-AZ, Redis
+│   ├── 02-kubernetes-autoscaling-hpa-and-karpenter.md # HPA metric scaling, Karpenter node provisioning
+│   ├── 03-multi-az-high-availability-and-rds.md     # Topology spread constraints, sync replication
+│   ├── 04-zero-downtime-blue-green-and-canary.md    # Rolling vs Blue/Green vs Canary (Argo Rollouts)
+│   ├── 05-disaster-recovery-rto-rpo-and-backups.md  # RTO/RPO definitions, DR strategy matrix
+│   ├── 06-full-stack-observability-and-sre-slos.md  # Prometheus, Loki, SLI/SLO/SLA, Error Budgets
+│   └── 07-iam-least-privilege-and-irsa.md           # IRSA, Pod Identity, GitHub Actions OIDC
+│
+└── 05-project-deep-dive/                            # 🎯 PROJECT DEFENSE & INTERVIEWS
+    ├── 01-project-overview-and-elevator-pitch.md    # 60-second pitch, tech stack breakdown
+    ├── 02-dockerfiles-and-compose-defense.md        # Line-by-line defense of all Dockerfiles
+    ├── 03-kubernetes-manifests-deep-dive.md         # Explaining envFrom, selectors, volume mounts
+    ├── 04-cicd-workflow-and-testing-strategy.md     # Unit vs integration tests, coverage gates
+    └── 05-troubleshooting-stories-and-interviews.md # Jest 25 fix story, SonarQube persistence story
 ```
 
 ---
 
-## Project Tie-In (answer questions with YOUR project)
+## 🎯 Recommended Study Order
 
-Your project `FullStack-DevOps-Pipeline` gives you real evidence:
-
-| Interview Topic | Your Real Example |
-|---|---|
-| Docker | Multi-stage client Dockerfile (~1GB → ~23MB), `USER node`, `npm ci`, `.dockerignore` |
-| Compose → K8s mapping | `env_file` → ConfigMap + Secret; volumes → PVC; services → Services |
-| LoadBalancer vs Ingress | Chose LoadBalancer — client nginx already routes `/` and `/api/` |
-| K8s manifests | 10 manifests: namespace, configmap, secret, dbpvc, dbdep, dbsrc, apidep, apisrc, clientdep, clientsrc |
-| CI/CD design | GitHub Actions: test → SonarQube → build → push → deploy |
-| Code quality | 62 Jest tests, 50% coverage thresholds, SonarQube quality gate |
-| Security | Non-root containers, secrets in K8s Secret, config in ConfigMap |
-| Troubleshooting | Jest v25 `node:` protocol fix → upgraded Jest 29; SonarQube auth (missing volume mount) |
-
-> **TIP:** Whenever an interviewer asks "how would you…", anchor the answer in your project. "In my project, I did X, and here's how I'd extend it to Y."
-
----
-
-*Start with 01-cicd.md → then 06-cheatsheet.md daily. Good luck!*
+1. **Days 1–3:** Master **`01-level-1-fundamentals/`** to speak with absolute confidence on basic commands and syntax.
+2. **Days 4–6:** Study **`02-level-2-intermediate/`** to explain *why* every architectural decision was made.
+3. **Days 7–9:** Drill **`03-level-3-production-incidents/`** to master live outage triage and RCA writing.
+4. **Days 10–12:** Master **`04-level-4-system-design-and-architecture/`** to showcase senior-level scaling to 1M users.
+5. **Days 13+:** Practice the elevator pitch and troubleshooting stories in **`05-project-deep-dive/`** out loud.
