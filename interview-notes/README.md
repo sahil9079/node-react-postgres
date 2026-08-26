@@ -5,10 +5,18 @@
 
 ---
 
+## 🧭 Master Roadmap & Study Sequence
+
+* 📌 **[00-master-revision-roadmap.md](00-master-revision-roadmap.md)** — **Start here!** Complete day-by-day revision sequence from codebase inspection $\to$ level 1 fundamentals $\to$ production incidents $\to$ senior system design.
+
+---
+
 ## 🗂 Complete Folder & File Directory
 
 ```
 interview-notes/
+│
+├── 00-master-revision-roadmap.md                    # 📌 Start Here: Day-by-Day Study Sequence
 │
 ├── 01-level-1-fundamentals/                         # 🟢 LEVEL 1 (1 Year Experience)
 │   ├── 01-linux-fundamentals.md                     # Linux CPU, Memory, Disk, Inodes, Kill, SSH
@@ -55,13 +63,3 @@ interview-notes/
     ├── 04-cicd-workflow-and-testing-strategy.md     # Unit vs integration tests, coverage gates
     └── 05-troubleshooting-stories-and-interviews.md # Jest 25 fix story, SonarQube persistence story
 ```
-
----
-
-## 🎯 Recommended Study Order
-
-1. **Days 1–3:** Master **`01-level-1-fundamentals/`** to speak with absolute confidence on basic commands and syntax.
-2. **Days 4–6:** Study **`02-level-2-intermediate/`** to explain *why* every architectural decision was made.
-3. **Days 7–9:** Drill **`03-level-3-production-incidents/`** to master live outage triage and RCA writing.
-4. **Days 10–12:** Master **`04-level-4-system-design-and-architecture/`** to showcase senior-level scaling to 1M users.
-5. **Days 13+:** Practice the elevator pitch and troubleshooting stories in **`05-project-deep-dive/`** out loud.
