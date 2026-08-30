@@ -62,5 +62,6 @@ interview-notes/
     ├── 03-kubernetes-manifests-deep-dive.md         # Explaining envFrom, selectors, volume mounts
     ├── 04-cicd-workflow-and-testing-strategy.md     # Unit vs integration tests, coverage gates
     ├── 05-troubleshooting-stories-and-interviews.md # Jest 25 fix story, SonarQube persistence story
-    └── 06-versions-gateways-and-ingress-best-practices.md # ⭐ Stack Versions, Gateways & Ingress Best Practices
+    ├── 06-versions-gateways-and-ingress-best-practices.md # ⭐ Stack Versions, Gateways & Ingress Best Practices
+    └── 07-kubernetes-complete-architecture-and-manifest-deep-dive.md # ⭐ K8s Cluster Architecture, Manifests & kubectl Runbook
 ```

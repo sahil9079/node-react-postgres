@@ -113,7 +113,8 @@ flowchart TD
   1. [`01-project-overview-and-elevator-pitch.md`](05-project-deep-dive/01-project-overview-and-elevator-pitch.md) — **Memorize the 60-second pitch** and practice delivering it out loud.
   2. [`06-versions-gateways-and-ingress-best-practices.md`](05-project-deep-dive/06-versions-gateways-and-ingress-best-practices.md) — **Master exact stack versions (Node 18 LTS, React 17, Postgres 15, Nginx 1.29), Ingress vs Gateways, and ALB annotations.**
   3. [`02-dockerfiles-and-compose-defense.md`](05-project-deep-dive/02-dockerfiles-and-compose-defense.md) & [`03-kubernetes-manifests-deep-dive.md`](05-project-deep-dive/03-kubernetes-manifests-deep-dive.md) — Answer all file-specific questions.
-  4. [`05-troubleshooting-stories-and-interviews.md`](05-project-deep-dive/05-troubleshooting-stories-and-interviews.md) — Practice the **Jest 25 upgrade story** and the **SonarQube Docker persistence story**.
+  4. [`07-kubernetes-complete-architecture-and-manifest-deep-dive.md`](05-project-deep-dive/07-kubernetes-complete-architecture-and-manifest-deep-dive.md) — **Master K8s cluster architecture, 10-manifest breakdown, internal networking, and kubectl runbook.**
+  5. [`05-troubleshooting-stories-and-interviews.md`](05-project-deep-dive/05-troubleshooting-stories-and-interviews.md) — Practice the **Jest 25 upgrade story** and the **SonarQube Docker persistence story**.
 
 ---
 
