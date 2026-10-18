@@ -38,22 +38,22 @@ Har stage ka real status niche track kiya gaya hai. Interview mein sirf wahi che
 
 | Phase | Milestone Name | Current Status | Notes / Verification Evidence |
 | :--- | :--- | :--- | :--- |
-| **Phase 0** | Repository Audit, Git Hygiene & ADRs | **Tested** | Baseline CLI versions & 62 Jest tests verified (`43/43` API, `19/19` Client); `.gitignore` & `.dockerignore` hardened; ADR-001 added |
-| **Phase 1** | App Verification, `/healthz`, `/readyz` & DB TLS Config | **Tested** | Added `/healthz` and `/readyz` in `apiserver/app.js`, standardized `PORT=8010`, added `DB_SSL` toggle, verified with Jest unit/integration tests |
-| **Phase 2** | Multi-Stage Dockerfiles & Container Hardening | **Planned** (Baseline files exist) | Existing `apiserver/Dockerfile` and `client/Dockerfile` audited; `.config.env` leak fixed; production `--omit=dev` & `HEALTHCHECK` ready for Phase 2 milestone |
-| **Phase 3** | Docker Compose, NGINX Routing & Persistence | **Planned** (Baseline file exists) | Existing `docker-compose.yaml` & `client/nginx.conf` audited; `/api/` trailing-slash bug identified for Phase 3 fix |
-| **Phase 4** | Local Prometheus & Grafana Observability | **Planned** | `prom-client` metrics, `prometheus.yml`, `alerts.yml`, and Grafana dashboards documented in Phase 4 |
-| **Phase 5** | Terraform S3 Bootstrap & Module Structure | **Planned** | Terraform `v1.15.4` verified locally; `use_lockfile = true` S3 backend design documented |
-| **Phase 6** | AWS VPC, Subnets, Security Groups, IAM & ECR | **Planned** | `ap-south-1` VPC (`10.0.0.0/16`), public/private/DB subnets, and ECR modules documented |
-| **Phase 7** | Amazon EKS Cluster, Workloads, Probes, HPA & PDB | **Planned** (Baseline `k8s/` exists) | Existing `k8s/*.yaml` audited; missing Secret/ConfigMap keys & probes identified |
-| **Phase 8** | Private Amazon RDS PostgreSQL & Secrets Manager | **Planned** | `k8s/external-secret.yaml` baseline exists; private RDS module & TLS connection documented |
-| **Phase 9** | AWS Load Balancer Controller & ALB Ingress | **Planned** | Single ALB path-based routing (`/` $\to$ `client-service`, `/api/*` $\to$ `apiserver-service`) documented |
-| **Phase 10** | GitHub Actions CI/CD with AWS OIDC | **Planned** (Baseline CI exists) | Existing `.github/workflows/main.yaml` audited; OIDC CD workflow & rollback documented |
-| **Phase 11** | DevSecOps Gates (SonarQube, Trivy, RBAC) | **Planned** (Baseline scans exist) | `sonar-project.properties` & Trivy scan audited; typo `vulnerabitlity-type` identified |
-| **Phase 12** | CloudWatch, Alerting & 9 Incident Runbooks | **Planned** | All 9 troubleshooting playbooks (`Symptom -> Evidence -> Root Cause -> Fix`) documented |
-| **Phase 13** | Reliability Drills, Load Tests (`k6`), RTO/RPO | **Planned** (`k6` scripts exist) | Existing `apiserver/k6-tests/` scripts audited; HPA, rollout undo & RDS restore drills documented |
-| **Phase 14** | Sprint Workflow, PR Templates & Interview Q&A | **Implemented** | Complete Hinglish elevator pitch, cross-questions, and workplace sentences included in this guide |
-| **Phase 15** | Cost Control, Temporary Shutdown & Safe Teardown | **Implemented** | Dedicated [AWS_COST_OPTIMIZATION_AND_CLEANUP.md](./AWS_COST_OPTIMIZATION_AND_CLEANUP.md) created |
+| **Phase 0** | Repository Audit, Git Hygiene & ADRs | **Tested** | Baseline CLI versions & 72 Jest tests verified (`53/53` API, `19/19` Client); `.gitignore` & `.dockerignore` hardened; ADR-001 added |
+| **Phase 1** | App Verification, `/healthz`, `/readyz` & DB TLS Config | **Tested** | Added `/healthz`, `/readyz`, and `/metrics` in `apiserver/app.js`, standardized `PORT=8010`, added `DB_SSL` toggle, verified with Jest (`68.28%` stmt coverage) |
+| **Phase 2** | Multi-Stage Dockerfiles & Container Hardening | **Implemented** | `apiserver/Dockerfile` upgraded to 2-stage build (`--omit=dev`, `USER node`, `/healthz` `HEALTHCHECK`); `client/Dockerfile` updated with `/nginx-health` `HEALTHCHECK` |
+| **Phase 3** | Docker Compose, NGINX Routing & Persistence | **Tested** | Fixed `/api/` trailing-slash bug in `client/nginx.conf`; segmented `docker-compose.yaml` into 3 networks; validated via `docker compose config --quiet` |
+| **Phase 4** | Local Prometheus & Grafana Observability | **Tested** | Created `apiserver/metrics.js`, `deploy/prometheus/{prometheus.yml,alerts.yml}`, and `deploy/grafana/` provisioning + dashboard JSON |
+| **Phase 5** | Terraform S3 Bootstrap & Module Structure | **Tested** | Created `infra/bootstrap/main.tf` and `infra/envs/lab/main.tf` (`use_lockfile = true`); verified via `terraform -chdir=infra fmt -check -recursive` |
+| **Phase 6** | AWS VPC, Subnets, Security Groups, IAM & ECR | **Implemented** | Created `infra/modules/{network,ecr,iam}/main.tf` for `ap-south-1` (`10.0.0.0/16`, 3-tier subnets, SG chain, OIDC + IRSA) |
+| **Phase 7** | Amazon EKS Cluster, Workloads, Probes, HPA & PDB | **Tested** | Created `infra/modules/eks/main.tf` & updated `k8s/` + `k8s/overlays/{lab,production}`; validated via `kubectl kustomize` |
+| **Phase 8** | Private Amazon RDS PostgreSQL & Secrets Manager | **Implemented** | Created `infra/modules/rds/main.tf` & updated `k8s/{secret.yaml,external-secret.yaml}` with all required keys |
+| **Phase 9** | AWS Load Balancer Controller & ALB Ingress | **Tested** | Created `k8s/ingress.yaml` and switched `k8s/clientsrc.yaml` to `ClusterIP`; validated with Kustomize |
+| **Phase 10** | GitHub Actions CI/CD with AWS OIDC | **Implemented** | Updated `.github/workflows/main.yaml` & created `.github/workflows/deploy-lab.yml` with OIDC AssumeRole & rollout verification |
+| **Phase 11** | DevSecOps Gates (SonarQube, Trivy, RBAC) | **Implemented** | Fixed `vulnerability-type: 'os,library'` typo in `.github/workflows/main.yaml`; created `k8s/{serviceaccount.yaml,rbac.yaml}` |
+| **Phase 12** | CloudWatch, Alerting & 9 Incident Runbooks | **Implemented** | All 9 troubleshooting playbooks (`Symptom -> Evidence -> Root Cause -> Fix`) documented in Phase 12 |
+| **Phase 13** | Reliability Drills, Load Tests (`k6`), RTO/RPO | **Implemented** | Created `scripts/smoke-test.sh`; existing `apiserver/k6-tests/` scripts integrated with HPA, rollout undo & RDS restore drills |
+| **Phase 14** | Sprint Workflow, PR Templates & Interview Q&A | **Implemented** | Complete Hinglish elevator pitch, 48-term dictionary, cross-questions, and workplace sentences included |
+| **Phase 15** | Cost Control, Temporary Shutdown & Safe Teardown | **Implemented** | Dedicated [AWS_COST_OPTIMIZATION_AND_CLEANUP.md](./AWS_COST_OPTIMIZATION_AND_CLEANUP.md) + `scripts/{aws-preflight.sh,post-destroy-check.sh}` created |
 
 ---
 

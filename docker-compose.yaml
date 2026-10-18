@@ -1,42 +1,131 @@
-version: '3.8'
-
 services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_USER: postgres
+      POSTGRES_DB: sampledb
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    networks:
+      - backend-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sampledb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-   db:
+  apiserver:
+    build: ./apiserver
+    env_file:
+      - path: ./apiserver/.config.env
+        required: false
+    environment:
+      NODE_ENV: development
+      API_VERSION: v1
+      PORT: 8010
+      PORT_DEV: 8010
+      PORT_PROD: 8010
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASS: mypassword
+      DB_NAME: sampledb
+      DB_SSL: "false"
+      JWT_VERIFY_SECRET: L6xOeIB5b1X7CnkXGRpCvaAJvFbHvS3a
+      JWT_VERIFY_EXPIRY: 1d
+      JWT_SESSION_SECRET: uGXbqsLwLb4gsGcqgtFgcrT3TGRMjchZ
+      JWT_SESSION_EXPIRY: 1d
+      JWT_REFRESH_SECRET: 1DVSMbLa6VzoiIYa7EwNLyb6QQX7Mr0B
+      JWT_REFRESH_EXPIRY: 30d
+      SESSION_ENCRYPT_SECRET: 7EwNLyb6QQX7Mr0B
+      SESSION_ALGORITHM: aes-192-cbc
+      PASSWORD_HASH_CYCLE: 10
+      SESSION_COOKIE_NAME: __sample_session
+    image: sahil9079/js-apiserver:v1.1.0
+    restart: unless-stopped
+    ports:
+      - "8010:8010"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend-net
+      - frontend-net
+      - monitoring-net
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:8010/healthz', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
-      image: postgres:15-alpine
-      restart: always
-      ports:
-         - "5432:5432"
-      environment:
-         POSTGRES_PASSWORD: mypassword
-         POSTGRES_USER: postgres
-         POSTGRES_DB: sampledb
-      volumes:
-         - dbdata:/var/lib/postgresql/data
-      healthcheck:
-        test: ["CMD-SHELL", "pg_isready -U postgres -d sampledb"]
-        interval: 10s
-        timeout: 5s
-        retries: 5
+  client:
+    build: ./client
+    image: sahil9079/js-client:v1.1.0
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      apiserver:
+        condition: service_healthy
+    networks:
+      - frontend-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/nginx-health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
 
-   apiserver:
-      build: ./apiserver
-      env_file: ./apiserver/.config.env
-      image: sahil9079/js-apiserver:v1.1.0
-      ports:
-         - "8010:8010"
-      depends_on:
-         db:
-            condition: service_healthy
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+    depends_on:
+      apiserver:
+        condition: service_healthy
+    networks:
+      - monitoring-net
 
-   client:
-      build: ./client
-      image: sahil9079/js-client:v1.1.0
-      ports:
-         - "80:80"
-      depends_on:
-         - apiserver
+  grafana:
+    image: grafana/grafana:11.2.0
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: adminpassword
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring-net
 
 volumes:
-   dbdata: {}
+  dbdata: {}
+  prometheus_data: {}
+  grafana_data: {}
+
+networks:
+  frontend-net:
+    driver: bridge
+  backend-net:
+    driver: bridge
+  monitoring-net:
+    driver: bridge

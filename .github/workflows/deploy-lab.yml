@@ -1,0 +1,88 @@
+name: CD — Deploy Immutable SHA Images to AWS EKS (OIDC)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target EKS Environment (lab or production)"
+        required: true
+        default: "lab"
+        type: choice
+        options:
+          - lab
+          - production
+
+permissions:
+  id-token: write # Required for GitHub OIDC JWT exchange with AWS STS
+  contents: read
+
+env:
+  AWS_REGION: ap-south-1
+  EKS_CLUSTER_NAME: skills-lab-eks
+  K8S_NAMESPACE: node-react-app
+
+jobs:
+  deploy_eks:
+    name: Build, Push to ECR (OIDC) & Rollout to EKS
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'lab' }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials via GitHub OIDC (No Static Keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify AWS Caller Identity
+        run: aws sts get-caller-identity
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, Tag & Push Immutable Git SHA Images to ECR
+        id: build-push
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $REGISTRY/skills-apiserver:$IMAGE_TAG ./apiserver
+          docker push $REGISTRY/skills-apiserver:$IMAGE_TAG
+          API_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $REGISTRY/skills-apiserver:$IMAGE_TAG)
+          echo "Pushed API Image Digest: $API_DIGEST"
+
+          docker build -t $REGISTRY/skills-client:$IMAGE_TAG ./client
+          docker push $REGISTRY/skills-client:$IMAGE_TAG
+          CLIENT_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $REGISTRY/skills-client:$IMAGE_TAG)
+          echo "Pushed Client Image Digest: $CLIENT_DIGEST"
+
+      - name: Configure kubectl Context for Amazon EKS
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+          kubectl config current-context
+
+      - name: Deploy Manifests to EKS with Kustomize
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          kubectl apply -k k8s/overlays/${{ inputs.environment || 'lab' }}
+          kubectl set image deployment/apiserver apiserver=$REGISTRY/skills-apiserver:$IMAGE_TAG -n ${{ env.K8S_NAMESPACE }}
+          kubectl set image deployment/my-app-deployment client-server=$REGISTRY/skills-client:$IMAGE_TAG -n ${{ env.K8S_NAMESPACE }}
+
+      - name: Wait for Rollout & Run Smoke Verification (Auto-Rollback on Failure)
+        run: |
+          if ! kubectl rollout status deployment/apiserver -n ${{ env.K8S_NAMESPACE }} --timeout=180s; then
+            echo "ERROR: apiserver rollout failed! Executing automated rollback..."
+            kubectl rollout undo deployment/apiserver -n ${{ env.K8S_NAMESPACE }}
+            exit 1
+          fi
+          if ! kubectl rollout status deployment/my-app-deployment -n ${{ env.K8S_NAMESPACE }} --timeout=180s; then
+            echo "ERROR: client rollout failed! Executing automated rollback..."
+            kubectl rollout undo deployment/my-app-deployment -n ${{ env.K8S_NAMESPACE }}
+            exit 1
+          fi
+          kubectl get deploy,po,svc,ingress -n ${{ env.K8S_NAMESPACE }}

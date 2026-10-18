@@ -1,308 +1,146 @@
-# Kubernetes (K8s) Architecture & Production Deep Dive
+# Kubernetes (Amazon EKS) Architecture & Production Manifest Deep Dive
 
-> **Project:** FullStack DevOps Pipeline — Skills Management Platform  
-> **Scope:** Complete Kubernetes Architecture, Manifest Breakdown, Ingress/Networking, Storage, and Production Operations  
+> **Project:** Node.js Skills Management Platform — DevOps Portfolio Architecture  
+> **Scope:** Complete Amazon EKS Architecture, Kustomize Manifest Breakdown, ALB Ingress Routing, External Secrets, Autoscaling (HPA/PDB), and Operations  
 > **Namespace:** `node-react-app`  
 > **Status:** Production Reference Documentation
 
 ---
 
-## 1. Executive Overview: What is Kubernetes & Why Do We Need It?
+## 1. Executive Overview: Cloud-Native Orchestration on Amazon EKS
 
-**Kubernetes (K8s)** is an open-source container orchestration engine that automates the **deployment, scaling, networking, and self-healing** of containerized applications across a distributed cluster of worker nodes.
+In our target AWS architecture (`ap-south-1` Mumbai), **Amazon EKS** runs our stateless application tiers (**React/NGINX Frontend** and **Node.js/Express Backend API**) across private application subnets, while stateful relational data resides in **Private Amazon RDS for PostgreSQL 15**.
 
-### Evolution: Docker vs. Kubernetes in Production
+### Evolution: Local Docker Compose vs. Production Amazon EKS
 
-| Feature | Docker / Docker Compose (Single Host) | Kubernetes (Cluster-Wide Orchestration) |
+| Capability | Local Docker Compose (`docker-compose.yaml`) | Production Amazon EKS (`k8s/` + `infra/`) |
 | :--- | :--- | :--- |
-| **Node Architecture** | Single machine; host failure brings down all services. | Multi-node cluster with automated workload re-scheduling. |
-| **Self-Healing** | Simple `restart: always` on local daemon. | Automatic health probes (Liveness/Readiness), pod replacement across healthy nodes. |
-| **Scaling** | Manual port mapping; host port collisions. | Horizontal Pod Autoscaling (HPA) based on CPU/RAM metrics and custom metrics. |
-| **Service Discovery** | Static Docker bridge network DNS. | Dynamic ClusterIP services with kube-proxy load balancing and CoreDNS. |
-| **Rolling Deployments** | Manual container restart with downtime. | Declarative zero-downtime rolling updates with automatic rollback on failure. |
-| **Storage Abstraction** | Host-bound volume mounts (`-v /var/lib/...`). | Cloud-agnostic PersistentVolumes (PV/PVC) backed by cloud storage (AWS EBS gp3). |
+| **Traffic Entrypoint** | NGINX container on host port `:80` reverse-proxying `/api/` | Single internet-facing **AWS ALB** managed by **AWS Load Balancer Controller Ingress** (`target-type: ip`) |
+| **Service Exposure** | Host port bindings (`80:80`, `8010:8010`, `5432:5432`) | Private **`ClusterIP` Services** (`client-service:80`, `apiserver-service:8010`) — no direct public node exposure |
+| **Self-Healing** | Container `restart: unless-stopped` | Distinct **Startup, Liveness (`/healthz`), and Readiness (`/readyz`) Probes** with automatic Pod replacement |
+| **Autoscaling & HA** | Manual container scaling | **HorizontalPodAutoscaler (`hpa.yaml`)** + **PodDisruptionBudget (`pdb.yaml`)** across Availability Zones |
+| **Secrets Management** | Local `.config.env` file (gitignored & dockerignored) | **AWS Secrets Manager** synced via **External Secrets Operator (`external-secret.yaml`)** + **IRSA (`serviceaccount.yaml`)** |
+| **Database Tier** | Local `postgres:15-alpine` container + `dbdata` volume | **Private Amazon RDS for PostgreSQL 15** over TLS (`DB_SSL=true`) on TCP `5432` |
 
 ---
 
-## 2. Kubernetes Cluster Architecture (Control Plane vs. Worker Nodes)
+## 2. Amazon EKS Cluster & VPC Topology
 
 ```mermaid
 flowchart TD
-    subgraph Control_Plane["Control Plane (Master Node)"]
-        API["kube-apiserver<br/>(Cluster Gateway / REST API)"]
-        ETCD[("etcd<br/>(Distributed Key-Value Store)")]
-        SCHED["kube-scheduler<br/>(Node Placement Engine)"]
-        CTRL["kube-controller-manager<br/>(Reconciliation Loop / State Enforcer)"]
-    end
+    subgraph AWS_Cloud["AWS Region: ap-south-1 (Mumbai)"]
+        subgraph Control_Plane["AWS-Managed EKS Control Plane"]
+            API["kube-apiserver"]
+            ETCD[("etcd")]
+            SCHED["kube-scheduler"]
+            CTRL["kube-controller-manager"]
+        end
 
-    subgraph Worker_Node_1["Worker Node 1"]
-        KUBELET1["kubelet"]
-        KPROXY1["kube-proxy"]
-        CRI1["Container Runtime (containerd)"]
-        
-        subgraph Pods1["Pod Workloads"]
-            Pod_Client["Client Pod (Nginx 1.29 + React SPA)"]
-            Pod_API["APIServer Pod (Node.js 18 Express)"]
+        subgraph Public_Subnets["Public Subnets (10.0.1.0/24, 10.0.2.0/24)"]
+            ALB["AWS Application Load Balancer (ALB)\nPath /* -> client-service:80\nPath /api/* -> apiserver-service:8010"]
+        end
+
+        subgraph Private_App_Subnets["Private App Subnets (10.0.11.0/24, 10.0.12.0/24) — Managed Node Group"]
+            subgraph Node1["Worker Node 1 (AZ-a)"]
+                ClientPod1["Client Pod (NGINX 1.29 + React)"]
+                APIPod1["APIServer Pod (Node 18 Express, UID 1000)"]
+            end
+            subgraph Node2["Worker Node 2 (AZ-b)"]
+                ClientPod2["Client Pod (NGINX 1.29 + React)"]
+                APIPod2["APIServer Pod (Node 18 Express, UID 1000)"]
+            end
+        end
+
+        subgraph Private_DB_Subnets["Private DB Subnets (10.0.21.0/24, 10.0.22.0/24)"]
+            RDS[("Private Amazon RDS PostgreSQL 15\nTCP 5432 (TLS Encrypted)")]
         end
     end
 
-    subgraph Worker_Node_2["Worker Node 2"]
-        KUBELET2["kubelet"]
-        KPROXY2["kube-proxy"]
-        CRI2["Container Runtime (containerd)"]
-        
-        subgraph Pods2["Database Workloads"]
-            Pod_DB["PostgreSQL 15 Pod (Alpine)"]
-        end
-    end
-
-    API <--> ETCD
-    API <--> SCHED
-    API <--> CTRL
-    API <--> KUBELET1
-    API <--> KUBELET2
-    KUBELET1 --> CRI1 --> Pods1
-    KUBELET2 --> CRI2 --> Pods2
-    KPROXY1 -.-> Pods1
-    KPROXY2 -.-> Pods2
+    ALB -->|Direct Pod IP:80| ClientPod1 & ClientPod2
+    ALB -->|Direct Pod IP:8010| APIPod1 & APIPod2
+    APIPod1 & APIPod2 -->|TCP 5432 TLS| RDS
+    Control_Plane -.->|Manages| Node1 & Node2
 ```
-
-### 2.1 Control Plane Components
-* **`kube-apiserver`**: The central gateway of Kubernetes. Validates and configures data for Pods, Services, ReplicationControllers, and others. All external (`kubectl`) and internal communications go through this API.
-* **`etcd`**: Highly-available, consistent key-value store acting as Kubernetes' single source of truth for cluster state and metadata.
-* **`kube-scheduler`**: Watches for newly created Pods without assigned nodes, selecting optimal worker nodes based on resource requests, constraints, and affinity rules.
-* **`kube-controller-manager`**: Runs controller processes that continuously reconcile current cluster state against desired state (e.g., Node Lifecycle Controller, ReplicaSet Controller, EndpointSlice Controller).
-
-### 2.2 Worker Node Components
-* **`kubelet`**: The node agent that ensures containers described in `PodSpecs` are running and healthy.
-* **`kube-proxy`**: Network proxy running on each node that maintains network rules (iptables/IPVS) for Service abstraction and ClusterIP routing.
-* **`Container Runtime` (e.g., containerd, CRI-O)**: The underlying software responsible for pulling images and executing container processes.
 
 ---
 
-## 3. Project Manifest Breakdown & Core Objects
+## 3. Complete `k8s/` Manifest Inventory & Kustomize Overlays
 
-In this repository, the application is organized into **10 Kubernetes manifests** located in [`k8s/`](file:///d:/javascript_project/node-react-postgres/k8s):
-
-```
+```text
 k8s/
- ├── namespace.yaml     ──► 1. Logical Isolation Boundary
- ├── configmap.yaml     ──► 2. Non-Sensitive Environment Configuration
- ├── secret.yaml        ──► 3. Sensitive Credentials (Base64 Encrypted)
- ├── dbpvc.yaml         ──► 4. Cloud Persistent Storage (3Gi EBS gp3)
- ├── clientdep.yaml     ──► 5. Deployment: React SPA (Nginx)
- ├── clientsrc.yaml     ──► 6. Service: Public LoadBalancer (Port 80)
- ├── apidep.yaml        ──► 7. Deployment: Express REST API (Node.js)
- ├── apisrc.yaml        ──► 8. Service: Internal ClusterIP (Port 8010)
- ├── dbdep.yaml         ──► 9. Deployment: PostgreSQL Database
- └── dbsrc.yaml         ──► 10. Service: Internal ClusterIP (Port 5432)
+ ├── namespace.yaml                ──► 1. Isolated Namespace (node-react-app)
+ ├── serviceaccount.yaml           ──► 2. Workload Identity ServiceAccount (IRSA)
+ ├── rbac.yaml                     ──► 3. Namespace-Scoped Least-Privilege Role & RoleBinding
+ ├── configmap.yaml                ──► 4. Non-Sensitive Config (PORT=8010, DB_HOST, DB_SSL, etc.)
+ ├── secret.yaml                   ──► 5. Local K8s Secret Template (Aligned with DB_USER, DB_PASS, JWT_*, SESSION_*)
+ ├── external-secret.yaml          ──► 6. AWS Secrets Manager -> K8s Secret Sync (External Secrets Operator)
+ ├── apidep.yaml                   ──► 7. Backend Deployment (UID 1000, Probes, Resources, RollingUpdate)
+ ├── apisrc.yaml                   ──► 8. Backend Internal Service (ClusterIP :8010)
+ ├── clientdep.yaml                ──► 9. Frontend Deployment (NGINX 1.29, /nginx-health Probes, Resources)
+ ├── clientsrc.yaml                ──► 10. Frontend Internal Service (ClusterIP :80)
+ ├── ingress.yaml                  ──► 11. AWS ALB Ingress (/api -> apiserver-service, / -> client-service)
+ ├── hpa.yaml                      ──► 12. HorizontalPodAutoscalers (apiserver 2-6 Pods, client 2-4 Pods)
+ ├── pdb.yaml                      ──► 13. PodDisruptionBudgets (minAvailable: 1)
+ ├── kustomization.yaml            ──► 14. Base Kustomize Assembly
+ ├── dbpvc.yaml / dbdep.yaml / dbsrc.yaml ──► (Optional Local Kind/Minikube In-Cluster Postgres Reference)
+ └── overlays/
+      ├── lab/kustomization.yaml        ──► Low-cost AWS EKS Lab Overlay (1 replica, Lab RDS endpoint, DB_SSL=true)
+      └── production/kustomization.yaml ──► Multi-AZ Production Overlay (3 API replicas, ExternalSecret, Prod RDS)
 ```
 
 ---
 
-### 3.1 Object 1: Namespace ([`namespace.yaml`](file:///d:/javascript_project/node-react-postgres/k8s/namespace.yaml))
-Provides virtual cluster isolation for security, RBAC policies, and resource quotas.
-
-```yaml
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: node-react-app
-```
-
----
-
-### 3.2 Object 2: ConfigMap & Secret ([`configmap.yaml`](file:///d:/javascript_project/node-react-postgres/k8s/configmap.yaml) & [`secret.yaml`](file:///d:/javascript_project/node-react-postgres/k8s/secret.yaml))
-Enforces the 12-Factor App methodology by decoupling application logic from configuration.
-
-* **ConfigMap (Non-Sensitive):**
-  ```yaml
-  apiVersion: v1
-  kind: ConfigMap
-  metadata:
-    name: configmap
-    namespace: node-react-app
-  data:
-    NODE_ENV: "development"
-    PORT_DEV: "8010"
-    API_VERSION: "v1"
-    DB_HOST: "postgres-service"  # Internal DNS pointing to DB Service
-    DB_PORT: "5432"
-    DB_NAME: "sampledb"
-  ```
-
-* **Secret (Sensitive Credentials):**
-  ```yaml
-  apiVersion: v1
-  kind: Secret
-  metadata:
-    name: my-secret
-    namespace: node-react-app
-  type: Opaque
-  data:
-    username: cG9zdGdyZXM=       # Base64 for 'postgres'
-    password: bXlwYXNzd29yZA==   # Base64 for 'mypassword'
-    JWT_SECRET: c29tZV9zZWNyZXQ= # Base64 for 'some_secret'
-  ```
-
----
-
-### 3.3 Object 3: Pods & Deployments ([`apidep.yaml`](file:///d:/javascript_project/node-react-postgres/k8s/apidep.yaml))
-* **Pod**: The atomic execution unit in Kubernetes containing one or more containers sharing network namespace and storage volumes.
-* **Deployment**: High-level declarative controller managing ReplicaSets, automated rollouts, rollbacks, and self-healing.
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: apiserver
-  namespace: node-react-app
-  labels:
-    app: apiserver
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: apiserver
-  template:
-    metadata:
-      labels:
-        app: apiserver
-    spec:
-      containers:
-      - name: apiserver
-        image: sahil9079/js-apiserver:v1.1.0
-        ports:
-          - name: apiserver-port
-            containerPort: 8010
-        envFrom:
-          - configMapRef:
-               name: configmap
-          - secretRef:
-               name: my-secret
-```
-
----
-
-### 3.4 Object 4: Services & Networking ([`clientsrc.yaml`](file:///d:/javascript_project/node-react-postgres/k8s/clientsrc.yaml), [`apisrc.yaml`](file:///d:/javascript_project/node-react-postgres/k8s/apisrc.yaml), [`dbsrc.yaml`](file:///d:/javascript_project/node-react-postgres/k8s/dbsrc.yaml))
-
-#### Why are Services necessary?
-Pods are ephemeral. When a pod crashes or scales, Kubernetes assigns a new dynamic IP. A **Service** provides a permanent internal IP and DNS name with built-in round-robin load balancing.
-
-| Service Manifest | Type | Accessibility | Target Port | Role |
-| :--- | :--- | :--- | :--- | :--- |
-| [`clientsrc.yaml`](file:///d:/javascript_project/node-react-postgres/k8s/clientsrc.yaml) | `LoadBalancer` | Public Web | `80:80` | Provisions an AWS ALB/ELB to direct public user browser traffic to Client Pods. |
-| [`apisrc.yaml`](file:///d:/javascript_project/node-react-postgres/k8s/apisrc.yaml) | `ClusterIP` | Internal Cluster | `8010:8010` | Exposes Express API internally via DNS `http://apiserver-service:8010/`. |
-| [`dbsrc.yaml`](file:///d:/javascript_project/node-react-postgres/k8s/dbsrc.yaml) | `ClusterIP` | Internal Cluster | `5432:5432` | Exposes PostgreSQL internally via DNS `postgres-service:5432`. |
-
-```yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: apiserver-service
-  namespace: node-react-app
-spec:
-  type: ClusterIP   
-  selector:
-    app: apiserver     
-  ports:
-    - protocol: TCP
-      port: 8010 
-      targetPort: apiserver-port
-```
-
----
-
-### 3.5 Object 5: Storage Architecture ([`dbpvc.yaml`](file:///d:/javascript_project/node-react-postgres/k8s/dbpvc.yaml) & [`dbdep.yaml`](file:///d:/javascript_project/node-react-postgres/k8s/dbdep.yaml))
-
-```mermaid
-flowchart LR
-    PostgresPod["PostgreSQL Container<br/>(mount: /var/lib/postgresql/data)"] -->|Volume Mount| PVC["PersistentVolumeClaim<br/>(db-pvc: 3Gi)"]
-    PVC -->|Dynamic Provisioning| PV["PersistentVolume<br/>(AWS EBS gp3 Cloud Storage)"]
-```
-
-* **PersistentVolumeClaim (PVC)**: A request for storage by the database pod.
-* **PersistentVolume (PV)**: The physical cloud volume (AWS EBS) bound to the claim.
-* **Durability**: If the PostgreSQL pod restarts or crashes, Kubernetes mounts the same EBS volume to the newly scheduled pod with zero data loss.
-
----
-
-## 4. Complete End-to-End Request & Network Flow
+## 4. End-to-End Request & Probe Flow Sequence Diagram
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as Client Browser
-    participant ALB as AWS Load Balancer (Port 80)
-    participant ClientSvc as client-service (LoadBalancer)
-    participant ClientPod as Client Pod (Nginx 1.29 + React SPA)
+    actor User as User Browser
+    participant ALB as AWS ALB (Ingress)
+    participant ClientSvc as client-service (ClusterIP:80)
+    participant ClientPod as Client Pod (NGINX + React)
     participant APISvc as apiserver-service (ClusterIP:8010)
-    participant APIPod as apiserver Pod (Node.js 18 Slim)
-    participant DBSvc as postgres-service (ClusterIP:5432)
-    participant DBPod as Postgres Pod (Postgres 15 Alpine)
-    participant EBS as AWS EBS gp3 Volume
+    participant APIPod as apiserver Pod (Express :8010)
+    participant RDS as Private Amazon RDS (Postgres :5432)
 
-    User->>ALB: 1. HTTP GET /skills/dashboard
-    ALB->>ClientSvc: 2. Forward to Port 80
-    ClientSvc->>ClientPod: 3. Route to healthy Client Pod
-    ClientPod-->>User: 4. Nginx try_files serves index.html + React bundle
-    
-    User->>ALB: 5. HTTP POST /api/v1/auth/login
-    ALB->>ClientSvc: 6. Forward request
-    ClientSvc->>ClientPod: 7. Deliver to Client Pod
-    ClientPod->>APISvc: 8. Nginx proxy_pass http://apiserver-service:8010/
-    APISvc->>APIPod: 9. Load balance to active apiserver pod
-    APIPod->>DBSvc: 10. Query user credentials (TCP 5432)
-    DBSvc->>DBPod: 11. Route to Postgres pod
-    DBPod->>EBS: 12. Read /var/lib/postgresql/data
-    EBS-->>DBPod: 13. I/O Block returned
-    DBPod-->>APIPod: 14. SQL result set
-    APIPod-->>ClientPod: 15. JSON Response + Signed JWT Session Cookie
-    ClientPod-->>User: 16. HTTP 200 OK
+    Note over ALB,APIPod: Continuous Health & Readiness Checks
+    ALB->>APIPod: GET /healthz (ALB Target Health Check)
+    APIPod-->>ALB: 200 OK { status: "ok" }
+    APIPod->>RDS: K8s readinessProbe -> GET /readyz (sampledb.authenticate())
+    RDS-->>APIPod: Connection Verified (200 OK)
+
+    Note over User,ClientPod: Static SPA Load
+    User->>ALB: 1. HTTPS GET /
+    ALB->>ClientSvc: 2. Route /* to client-service:80 (target-type: ip)
+    ClientSvc->>ClientPod: 3. Forward to healthy NGINX Pod
+    ClientPod-->>User: 4. Return React SPA (index.html + static JS/CSS)
+
+    Note over User,RDS: Authenticated API Call
+    User->>ALB: 5. HTTPS POST /api/v1/auth/login
+    ALB->>APISvc: 6. Route /api/* to apiserver-service:8010
+    APISvc->>APIPod: 7. Forward to Ready Express Pod
+    APIPod->>RDS: 8. Sequelize Query over TLS (TCP 5432)
+    RDS-->>APIPod: 9. Return User Record
+    APIPod-->>User: 10. 200 OK + Encrypted HttpOnly Session Cookie
 ```
 
 ---
 
-## 5. Production Operations & `kubectl` Runbook
+## 5. Essential Kubernetes Operational & Troubleshooting Commands
 
-### 5.1 Deploying the Entire Application
-```bash
-# Step 1: Create isolated namespace
-kubectl apply -f k8s/namespace.yaml
+```powershell
+# 1. Render and validate Kustomize overlays locally before applying to a cluster
+kubectl kustomize k8s
+kubectl kustomize k8s/overlays/lab
+kubectl kustomize k8s/overlays/production
 
-# Step 2: Apply secrets and configuration
-kubectl apply -f k8s/secret.yaml
-kubectl apply -f k8s/configmap.yaml
+# 2. Deploy the lab overlay to Amazon EKS
+kubectl apply -k k8s/overlays/lab
 
-# Step 3: Apply storage claim
-kubectl apply -f k8s/dbpvc.yaml
-
-# Step 4: Deploy database tier
-kubectl apply -f k8s/dbdep.yaml
-kubectl apply -f k8s/dbsrc.yaml
-
-# Step 5: Deploy backend and frontend tiers
-kubectl apply -f k8s/apidep.yaml
-kubectl apply -f k8s/apisrc.yaml
-kubectl apply -f k8s/clientdep.yaml
-kubectl apply -f k8s/clientsrc.yaml
-```
-
-### 5.2 Diagnostic & Observability Commands
-```bash
-# View all running resources in namespace
-kubectl get all -n node-react-app
-
-# Inspect pod details and event logs (diagnose CrashLoopBackOff/Pending)
-kubectl describe pod <pod-name> -n node-react-app
-
-# Stream live container logs
-kubectl logs -f deployment/apiserver -n node-react-app
-
-# Execute database healthcheck inside pod
-kubectl exec -it deployment/postgres-deployment -n node-react-app -- pg_isready -U postgres -d sampledb
-
-# Execute zero-downtime rolling restart
-kubectl rollout restart deployment/apiserver -n node-react-app
+# 3. Inspect rollout status, Pods, Services, EndpointSlices, Ingress, HPA, and PDB
 kubectl rollout status deployment/apiserver -n node-react-app
+kubectl get deploy,po,svc,endpointslices,ingress,hpa,pdb -n node-react-app -o wide
+
+# 4. Roll back immediately if a bad release fails readiness probes
+kubectl rollout undo deployment/apiserver -n node-react-app
 ```

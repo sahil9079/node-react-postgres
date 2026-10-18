@@ -69,24 +69,24 @@ flowchart TD
 
 ## ✅ Project Implementation Checklist (Phases 0–15)
 
-| Phase | Stage Description | Status | Notes |
+| Phase | Stage Description | Status | Notes / Verification Evidence |
 | :--- | :--- | :--- | :--- |
 | **Phase 0** | Repository Audit, Git Hygiene (`.gitignore`/`.dockerignore`) & ADR-001 | **Tested** | Fixed `.config.env` Docker build leak; verified CLI tools & baseline tests |
-| **Phase 1** | App Verification, Env Standardization (`PORT=8010`, `DB_SSL`) & `/healthz` + `/readyz` | **Tested** | `46/46` API tests (8 suites) & `19/19` Client tests (9 suites) passing |
-| **Phase 2** | Multi-Stage Dockerfiles, Non-Root Execution & Image Security | **Planned** (Baseline files present) | Documented in [DEVOPS_IMPLEMENTATION_GUIDE.md](./DEVOPS_IMPLEMENTATION_GUIDE.md) |
-| **Phase 3** | Docker Compose, PostgreSQL Persistence & NGINX Reverse Proxy | **Planned** (Baseline files present) | Includes fix for NGINX `/api/` proxy trailing-slash path stripping |
-| **Phase 4** | Prometheus Metrics (`/metrics`), Grafana Dashboards & Alert Rules | **Planned** | PromQL queries, golden signals & alert rules documented |
-| **Phase 5** | Terraform Fundamentals, Modules, S3 Remote State & Native Locking | **Planned** | Uses Terraform `v1.15+` `use_lockfile = true` in `ap-south-1` |
-| **Phase 6** | AWS VPC, Public/Private/DB Subnets, NAT, Security Groups, IAM & ECR | **Planned** | Least-privilege SG chain (`alb-sg` $\to$ `eks-nodes-sg` $\to$ `rds-sg`) |
-| **Phase 7** | Amazon EKS Cluster, Managed Nodes, Deployments, Probes, HPA & PDB | **Planned** (Baseline `k8s/` present) | Fixes `k8s/secret.yaml` & `configmap.yaml` key mismatch |
-| **Phase 8** | Private Amazon RDS PostgreSQL, Secrets Manager, TLS & Backups | **Planned** | Uses `DB_SSL=true` & External Secrets Operator |
-| **Phase 9** | AWS Load Balancer Controller, Ingress, ALB & Path-Based Routing | **Planned** | Single ALB routing `/api/*` and `/*` to `ClusterIP` Services |
-| **Phase 10** | GitHub Actions CI/CD, AWS OIDC, Immutable Tags, Rollout & Rollback | **Planned** (Baseline CI present) | Eliminates static AWS keys via GitHub OIDC |
-| **Phase 11** | DevSecOps Gates (SonarQube, Trivy, Secret Scanning & RBAC) | **Planned** (Baseline scans present) | Fixes `vulnerabitlity-type` typo in workflow |
-| **Phase 12** | CloudWatch, Prometheus, Grafana & 9 Production Incident Playbooks | **Implemented** (Runbooks) | All 9 runbooks documented in [DEVOPS_IMPLEMENTATION_GUIDE.md](./DEVOPS_IMPLEMENTATION_GUIDE.md) |
-| **Phase 13** | Reliability Drills, Rolling Updates, Rollback, `k6` Load Tests & RTO/RPO | **Planned** (`k6` scripts present) | Self-healing, bad rollout rollback & RDS restore drills documented |
-| **Phase 14** | Sprint Workflow, PR Reviews, Workplace Communication & Interview Kit | **Implemented** | Complete Hinglish dictionary & interview defense in guide |
-| **Phase 15** | AWS Cost Optimisation, Workload Pause & Dependency-Ordered Teardown | **Implemented** | Documented in [AWS_COST_OPTIMIZATION_AND_CLEANUP.md](./AWS_COST_OPTIMIZATION_AND_CLEANUP.md) |
+| **Phase 1** | App Verification, Env Standardization (`PORT=8010`, `DB_SSL`) & `/healthz` + `/readyz` | **Tested** | `53/53` API tests (8 suites, >50% global coverage) & `19/19` Client tests (9 suites) passing |
+| **Phase 2** | Multi-Stage Dockerfiles, Non-Root Execution (`USER node`) & Image Security | **Implemented** | `apiserver/Dockerfile` (2-stage, `--omit=dev`, non-root) & `client/Dockerfile` (`/nginx-health`) updated |
+| **Phase 3** | Docker Compose, PostgreSQL Persistence & NGINX Reverse Proxy | **Tested** | Fixed NGINX `/api/` trailing-slash bug; segmented 3 networks; `docker compose config` verified |
+| **Phase 4** | Prometheus Metrics (`/metrics`), Grafana Dashboards & Alert Rules | **Tested** | Zero-dependency `/metrics` endpoint tested in Jest; `deploy/prometheus/` & `deploy/grafana/` created |
+| **Phase 5** | Terraform Fundamentals, Modules, S3 Remote State & Native Locking | **Tested** | `infra/bootstrap` & `infra/envs/lab` formatted (`terraform fmt -check`) with S3 `use_lockfile = true` |
+| **Phase 6** | AWS VPC, Public/Private/DB Subnets, NAT, Security Groups, IAM & ECR | **Implemented** | `infra/modules/{network,ecr,iam}` created for `ap-south-1` with least-privilege SG chain |
+| **Phase 7** | Amazon EKS Cluster, Managed Nodes, Deployments, Probes, HPA & PDB | **Tested** | `infra/modules/eks` + `k8s/` + `k8s/overlays/{lab,production}` validated via `kubectl kustomize` |
+| **Phase 8** | Private Amazon RDS PostgreSQL, Secrets Manager, TLS & Backups | **Implemented** | `infra/modules/rds` + `k8s/external-secret.yaml` + `DB_SSL=true` TLS support implemented |
+| **Phase 9** | AWS Load Balancer Controller, Ingress, ALB & Path-Based Routing | **Tested** | `k8s/ingress.yaml` + `ClusterIP` Services (`clientsrc.yaml`, `apisrc.yaml`) validated via Kustomize |
+| **Phase 10** | GitHub Actions CI/CD, AWS OIDC, Immutable Tags, Rollout & Rollback | **Implemented** | `.github/workflows/main.yaml` & `.github/workflows/deploy-lab.yml` configured with OIDC |
+| **Phase 11** | DevSecOps Gates (SonarQube, Trivy, Secret Scanning & RBAC) | **Implemented** | Fixed `vulnerability-type: 'os,library'`; added `k8s/serviceaccount.yaml` & `k8s/rbac.yaml` |
+| **Phase 12** | CloudWatch, Prometheus, Grafana & 9 Production Incident Playbooks | **Implemented** | All 9 runbooks documented in [DEVOPS_IMPLEMENTATION_GUIDE.md](./DEVOPS_IMPLEMENTATION_GUIDE.md) |
+| **Phase 13** | Reliability Drills, Rolling Updates, Rollback, `k6` Load Tests & RTO/RPO | **Implemented** | `scripts/smoke-test.sh` + `apiserver/k6-tests/` + HPA/PDB/rollout drills documented |
+| **Phase 14** | Sprint Workflow, PR Reviews, Workplace Communication & Interview Kit | **Implemented** | Complete Hinglish dictionary (48 terms) & interview defense in guide |
+| **Phase 15** | AWS Cost Optimisation, Workload Pause & Dependency-Ordered Teardown | **Implemented** | Documented in [AWS_COST_OPTIMIZATION_AND_CLEANUP.md](./AWS_COST_OPTIMIZATION_AND_CLEANUP.md) + `scripts/post-destroy-check.sh` |
 
 ---
 
@@ -95,7 +95,7 @@ flowchart TD
 ### 1. Run Automated Unit & Integration Tests (Phase 0 & Phase 1)
 
 ```powershell
-# 1. Run Backend API Tests (46 unit & integration tests including /healthz & /readyz)
+# 1. Run Backend API Tests (53 unit & integration tests including /healthz, /readyz & /metrics)
 cd apiserver
 npm test -- --coverage
 

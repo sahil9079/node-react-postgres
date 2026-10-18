@@ -1,0 +1,21 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: apiserver-pdb
+  namespace: node-react-app
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: apiserver
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: client-pdb
+  namespace: node-react-app
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: client-app

@@ -1,0 +1,23 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: skills-app-readonly-role
+  namespace: node-react-app
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "pods", "services"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: skills-app-readonly-binding
+  namespace: node-react-app
+subjects:
+  - kind: ServiceAccount
+    name: skills-app-sa
+    namespace: node-react-app
+roleRef:
+  kind: Role
+  name: skills-app-readonly-role
+  apiGroup: rbac.authorization.k8s.io

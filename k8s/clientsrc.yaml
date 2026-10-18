@@ -1,13 +1,17 @@
 apiVersion: v1
 kind: Service
 metadata:
- name: client-service
- namespace: node-react-app
+  name: client-service
+  namespace: node-react-app
+  labels:
+    app: client-app
+    tier: frontend
 spec:
- type: LoadBalancer
- selector:
-   app: client-app
- ports:
-   - protocol: TCP
-     port: 80
-     targetPort: client-port
+  # Exposed externally via AWS ALB Kubernetes Ingress (k8s/ingress.yaml)
+  type: ClusterIP
+  selector:
+    app: client-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: client-port

@@ -1,0 +1,42 @@
+groups:
+  - name: skills-platform-golden-signal-alerts
+    rules:
+      - alert: ApiTargetDown
+        expr: up{job="skills-apiserver"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: apiserver
+        annotations:
+          summary: "Skills API Server target is DOWN"
+          description: "Prometheus has failed to scrape http://apiserver:8010/metrics for more than 1 minute."
+
+      - alert: HighHttp5xxErrorRate
+        expr: sum(rate(http_requests_total{status_code=~"5.."}[5m])) / clamp_min(sum(rate(http_requests_total[5m])), 1) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          service: apiserver
+        annotations:
+          summary: "High HTTP 5xx Error Rate (>5%)"
+          description: "More than 5% of HTTP requests to apiserver returned 5xx over the last 5 minutes."
+
+      - alert: HighApiLatencyP95
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[5m]))) > 0.5
+        for: 3m
+        labels:
+          severity: warning
+          service: apiserver
+        annotations:
+          summary: "High API p95 Latency (>500ms)"
+          description: "95th percentile HTTP latency on apiserver exceeded 500ms for 3 minutes."
+
+      - alert: HighNodeHeapMemoryUsage
+        expr: nodejs_heap_used_bytes > 400000000
+        for: 5m
+        labels:
+          severity: warning
+          service: apiserver
+        annotations:
+          summary: "Node.js Heap Memory Exceeding 400MB"
+          description: "apiserver heap usage is approaching the 512Mi container memory limit."

@@ -9,10 +9,13 @@ const helmet = require("helmet")
 const morgan = require("morgan")
 
 const api = require("./api")
+const { metricsMiddleware, metricsEndpoint } = require("./metrics")
 const convertErrors = require('./middleware/convertErrors')
 const handleErrors = require('./middleware/handleErrors')
 const app = express()
 
+// record HTTP request counts and duration histograms for Prometheus
+app.use(metricsMiddleware)
 
 // parsing cookies for auth
 app.use(cookieParser())
@@ -64,6 +67,9 @@ app.get("/readyz", async (req, res) => {
         })
     }
 })
+
+// Prometheus metrics scrape endpoint
+app.get("/metrics", metricsEndpoint)
 
 // serving the static files
 const clientBuildPath = path.join(__dirname, "../", "client/", "build")

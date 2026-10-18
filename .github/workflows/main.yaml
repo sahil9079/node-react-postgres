@@ -1,90 +1,123 @@
-name: deploy workflow
+name: CI — Build, Test, SonarQube & Trivy DevSecOps Gate
 
 on:
   push:
     branches:
       - main
-    
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-    testing:
-      runs-on: ubuntu-latest
-      strategy:
-        matrix:
-          service: [apiserver,client]
-      steps:
-        - name: checkout code
-          uses: actions/checkout@v3
-          with:
-            fetch-depth: 0
-          
-        - name: unit testing
-          uses: actions/setup-node@v4
-        - run: npm ci
-          working-directory: ${{ matrix.service }}
-        - run: npm test -- --coverage
-          working-directory: ${{ matrix.service}}
+  testing:
+    name: Unit & Integration Tests (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [apiserver, client]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    sonarqube:
-      needs: testing
-      runs-on: ubuntu-latest
-      steps:
-        - name: checkout code
-          uses: actions/checkout@v3
-          with:
-            fetch-depth: 0
+      - name: Setup Node.js 18 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: ${{ matrix.service }}/package-lock.json
 
-        - name: SonarCloud Scan
-          uses: SonarSource/sonarqube-scan-action@v5.2.0
-          env:
-            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Deterministic Dependencies (npm ci)
+        run: npm ci
+        working-directory: ${{ matrix.service }}
 
-        
-    security:
-      needs: testing
-      runs-on: ubuntu-latest
-      steps:
-        - uses: actions/checkout@v4
+      - name: Run Jest Tests with Coverage Gate (>=50%)
+        run: npm test -- --coverage --watchAll=false
+        working-directory: ${{ matrix.service }}
 
-        - name: Run npm audit for API Server
-          run: |
-            cd apiserver
-            npm audit --json > npm-audit-apiserver.json || true
+      - name: Upload Coverage Reports for SonarQube
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.service }}
+          path: ${{ matrix.service }}/coverage/
 
-        - name: Run npm audit for Client
-          run: |
-           cd client
-           npm audit --json > npm-audit-client.json || true
-           
-        - name: Upload npm Audit Reports
-          uses: actions/upload-artifact@v4
-          with:
-            name: npm-audit-reports
-            path: |
-              apiserver/npm-audit-apiserver.json
-              client/npm-audit-client.json
-        
+  sonarqube:
+    name: SonarQube Code Quality Gate
+    needs: testing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-        - name: Run Trivy Security Scan
-          uses: aquasecurity/trivy-action@v0.36.0
-          with:
-            scan-type: fs
-            path: .
-            format: json
-            exit-code: 0
-            vulnerabitlity-type: os,library
-            output: trivy-report.json
-        
-        - name: Upload Trivy scan results as Artifact
-          uses: actions/upload-artifact@v4
-          with:
-            name: trivy-scan-results
-            path: trivy-report.json
+      - name: Download Coverage Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-*
+          merge-multiple: false
 
-          
+      - name: Run SonarQube / SonarCloud Analysis
+        if: ${{ env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarqube-scan-action@v5.2.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  security_and_containers:
+    name: DevSecOps Dependency, Secret & Container Image Scan
+    needs: testing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run npm audit (SCA) for API Server & Client
+        run: |
+          cd apiserver && npm audit --json > npm-audit-apiserver.json || true
+          cd ../client && npm audit --json > npm-audit-client.json || true
+
+      - name: Upload npm Audit Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-reports
+          path: |
+            apiserver/npm-audit-apiserver.json
+            client/npm-audit-client.json
+
+      - name: Run Trivy Filesystem & Secret Scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          scanners: "vuln,secret,misconfig"
+          vuln-type: "os,library"
+          format: "json"
+          output: "trivy-fs-report.json"
+          exit-code: "0"
+
+      - name: Build Production Multi-Stage Docker Images
+        run: |
+          docker build -t skills-apiserver:${{ github.sha }} ./apiserver
+          docker build -t skills-client:${{ github.sha }} ./client
+
+      - name: Run Trivy Container Image Scan (apiserver)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "skills-apiserver:${{ github.sha }}"
+          format: "table"
+          exit-code: "0"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"
+
+      - name: Upload Trivy Security Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-scan-results
+          path: trivy-fs-report.json

@@ -1,0 +1,5 @@
+aws_region   = "ap-south-1"
+project_name = "skills"
+environment  = "lab"
+# Never commit real passwords! Copy to terraform.tfvars (which is gitignored) or pass via TF_VAR_db_password
+db_password  = "REPLACE_WITH_STRONG_PASSWORD"
