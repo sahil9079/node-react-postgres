@@ -128,3 +128,26 @@ dist
 
 # TernJS port file
 .tern-port
+
+# OS & Scanner files
+.DS_Store
+**/.DS_Store
+.scannerwork/
+
+# Terraform / IaC files (Never commit state or secrets!)
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+tfplan
+*.plan
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl
+
+# DevSecOps scan reports
+trivy-report*.json
+npm-audit*.json
+client/scan-report.json
+apiserver/npm-audit*.json
+client/npm-audit*.json
+

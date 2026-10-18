@@ -1,3 +1,4 @@
+const fs = require("fs")
 const path = require("path")
 
 const express = require("express")
@@ -35,8 +36,39 @@ app.use(express.json())
 // parsing incoming requests with urlencoded body payloads
 app.use(express.urlencoded({ extended: true }))
 
+// Liveness probe: lightweight check that Node.js HTTP server is responsive (no DB check)
+app.get("/healthz", (req, res) => {
+    res.status(200).json({
+        status: "ok",
+        service: "apiserver",
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString()
+    })
+})
+
+// Readiness probe: verifies PostgreSQL connection before accepting live traffic
+app.get("/readyz", async (req, res) => {
+    try {
+        const { sampledb } = require("./models")
+        await sampledb.authenticate()
+        res.status(200).json({
+            status: "ready",
+            database: "connected",
+            timestamp: new Date().toISOString()
+        })
+    } catch (err) {
+        res.status(503).json({
+            status: "not_ready",
+            database: "disconnected",
+            message: err.message
+        })
+    }
+})
+
 // serving the static files
-app.use(express.static(path.join(__dirname, "../", "client/", "build")))
+const clientBuildPath = path.join(__dirname, "../", "client/", "build")
+const clientIndexHtml = path.resolve(clientBuildPath, "index.html")
+app.use(express.static(clientBuildPath))
 app.use(express.static(path.join(__dirname, "images")))
 
 // handling gzip compression
@@ -44,9 +76,12 @@ app.use(compression())
 // redirecting incoming requests to api.js
 app.use(`/api/${process.env.API_VERSION}`, api)
 
-// returning the main index.html, so react-router render the route in the client
-app.get("*", (req, res) => {
-    res.sendFile(path.resolve(__dirname, "../", "client/", "build", "index.html",))
+// returning the main index.html only when bundled together; in API-only containers, fall through to 404
+app.get("*", (req, res, next) => {
+    if (!req.path.startsWith("/api/") && fs.existsSync(clientIndexHtml)) {
+        return res.sendFile(clientIndexHtml)
+    }
+    return next()
 })
 
 // setting up a 404 error handler

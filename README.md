@@ -1,185 +1,130 @@
-# FullStack DevOps Pipeline — Skills Management Platform
+# Node.js Skills Management Platform — Production DevOps Portfolio Architecture
 
-[![CI Pipeline](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF?logo=github-actions&logoColor=white)](.github/workflows/main.yaml)
+[![CI Pipeline](https://img.shields.io/badge/CI%2FCD-GitHub_Actions_OIDC-2088FF?logo=github-actions&logoColor=white)](.github/workflows/main.yaml)
 [![Docker](https://img.shields.io/badge/Docker-Multi--Stage-2496ED?logo=docker&logoColor=white)](apiserver/Dockerfile)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-EKS_Manifests-326CE5?logo=kubernetes&logoColor=white)](k8s/)
-[![Code Quality](https://img.shields.io/badge/SonarQube-LTS_Community-4E9BCD?logo=sonarqube&logoColor=white)](sonar-project.properties)
-[![Security](https://img.shields.io/badge/Security-Trivy_Scanned-008080?logo=aquasecurity&logoColor=white)](.github/workflows/main.yaml)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-Amazon_EKS-326CE5?logo=kubernetes&logoColor=white)](k8s/)
+[![Terraform](https://img.shields.io/badge/Terraform-AWS_IaC-7B42BC?logo=terraform&logoColor=white)](./DEVOPS_IMPLEMENTATION_GUIDE.md)
+[![Code Quality](https://img.shields.io/badge/SonarQube-Quality_Gate-4E9BCD?logo=sonarqube&logoColor=white)](sonar-project.properties)
+[![Security](https://img.shields.io/badge/Security-Trivy_DevSecOps-008080?logo=aquasecurity&logoColor=white)](.github/workflows/main.yaml)
 
-A production-grade, 3-tier **Skills Management & Professional Portfolio Web Application** automated with an enterprise DevOps lifecycle: **Docker multi-stage containerization**, **Kubernetes (AWS EKS) orchestration**, **GitHub Actions CI/CD automation**, **Jest test coverage gates (50%+)**, and **SonarQube code quality analysis**.
+A production-style, 3-tier **Skills Management Platform** (**React 17 + Node.js/Express 4 + PostgreSQL 15**) engineered for real-world **DevOps & Cloud Infrastructure** workflows across **Docker**, **Docker Compose**, **NGINX**, **Prometheus & Grafana**, **Terraform**, **AWS (`ap-south-1` Mumbai)**, **Amazon ECR**, **Amazon EKS**, **Private Amazon RDS**, **AWS Load Balancer Controller (ALB Ingress)**, **GitHub Actions (OIDC)**, **SonarQube**, **Trivy**, and **Amazon CloudWatch**.
 
 ---
 
-## 🏛 System Architecture Blueprint
+## 📘 Essential DevOps Engineering Manuals (Start Here!)
+
+1. 👉 **[DEVOPS_IMPLEMENTATION_GUIDE.md](./DEVOPS_IMPLEMENTATION_GUIDE.md)** — **Complete Step-by-Step Hinglish Implementation Manual (Phases 0 to 15)**, including the **48-Term Official DevOps Dictionary**, exact commands, architecture decisions, 9 production incident runbooks, and interview Q&A.
+2. 👉 **[AWS_COST_OPTIMIZATION_AND_CLEANUP.md](./AWS_COST_OPTIMIZATION_AND_CLEANUP.md)** — **FinOps Cost Control, Workload Pause & Dependency-Ordered Teardown Guide** covering Operation A (Local stop without data loss), Operation B (Temporary AWS pause), and Operation C (Safe teardown + 11 post-destroy AWS CLI checks).
+3. 👉 **[docs/adr/ADR-001-architecture-and-devops-evolution.md](./docs/adr/ADR-001-architecture-and-devops-evolution.md)** — **Architecture Decision Record** explaining Private RDS vs. in-cluster DB, Single ALB Ingress vs. Service LoadBalancer, and `/healthz` vs. `/readyz`.
+
+---
+
+## 🏛 Target Production Architecture Blueprint (`ap-south-1` Mumbai)
 
 ```mermaid
 flowchart TD
-    subgraph Client_Access["User Access"]
-        User["Client Browser"]
+    subgraph User_Edge["User & DNS Edge"]
+        User["User / Browser"]
+        R53["Amazon Route 53 (DNS)"]
+        ACM["AWS Certificate Manager (ACM)\nTLS Certificate Attached to ALB"]
     end
 
-    subgraph AWS_Cloud["AWS Cloud Infrastructure"]
-        ALB["AWS Application Load Balancer\n(Port 80)"]
-
-        subgraph EKS_Cluster["Amazon EKS (Namespace: node-react-app)"]
-            subgraph Frontend["Frontend Tier"]
-                ClientService["Service: client-service\n(type: LoadBalancer)"]
-                ClientPod["Client Pod: Nginx 1.29-Alpine\n- Port 80\n- Serves React 17 SPA Static Files\n- Reverse Proxies /api/"]
-            end
-
-            subgraph Backend["Backend Tier"]
-                APIService["Service: apiserver-service\n(type: ClusterIP, Port 8010)"]
-                APIPod["API Pod: Node.js 18 Slim\n- Express 4 REST API\n- Port 8010 (USER node)\n- JWT Auth, Bcrypt, Sharp"]
-            end
-
-            subgraph Database["Database Tier"]
-                DBService["Service: postgres-service\n(type: ClusterIP, Port 5432)"]
-                DBPod["PostgreSQL 15 Alpine Pod\n- Port 5432\n- sampledb Catalog"]
-                PVC["PersistentVolumeClaim (db-pvc)\n- 3Gi ReadWriteOnce"]
-            end
-
-            CM["ConfigMap: configmap\n(NODE_ENV, DB_HOST, PORT)"]
-            SEC["Secret: my-secret\n(DB_USER, DB_PASS, JWT_SECRET)"]
+    subgraph AWS_VPC["AWS Region (ap-south-1) — Terraform-Managed VPC (10.0.0.0/16)"]
+        subgraph Public_Subnets["Public Subnets (AZ1 & AZ2)"]
+            ALB["Internet-Facing AWS ALB (HTTPS 443 / HTTP 80)\nManaged by AWS Load Balancer Controller Ingress"]
         end
 
-        EBS["AWS EBS gp3 Volume\n(Managed via CSI Driver)"]
+        subgraph Private_App_Subnets["Private Application Subnets — Amazon EKS Cluster (Namespace: node-react-app)"]
+            ClientSvc["Frontend Service (ClusterIP :80)\nReact 17 + NGINX 1.29-Alpine\nProbes & HPA"]
+            APISvc["Backend Service (ClusterIP :8010)\nNode.js 18 + Express 4 REST API\n/healthz & /readyz Probes, Non-Root UID 1000, HPA"]
+            Config["ConfigMap & ExternalSecret\n(AWS Secrets Manager via IRSA / Pod Identity)"]
+        end
+
+        subgraph Private_DB_Subnets["Private DB Subnets — Managed Persistence"]
+            RDS["Amazon RDS for PostgreSQL 15\n- Private Only (No Public Access)\n- Encrypted at Rest & In Transit (DB_SSL=true)\n- Automated Backups & Multi-AZ Target"]
+        end
     end
 
-    User -->|1. HTTP Requests| ALB
-    ALB -->|2. Forward Port 80| ClientService
-    ClientService --> ClientPod
-    ClientPod -->|3. Serve React SPA| User
-    ClientPod -->|4. proxy_pass /api/ | APIService
-    APIService --> APIPod
-    CM -.->|Inject non-sensitive config| APIPod
-    SEC -.->|Inject credentials| APIPod
-    SEC -.->|Inject credentials| DBPod
-    APIPod -->|5. Sequelize SQL Queries| DBService
-    DBService --> DBPod
-    DBPod -->|6. Storage Mount /var/lib/postgresql/data| PVC
-    PVC -->|7. Cloud Block I/O| EBS
+    subgraph CICD_DevSecOps["CI/CD & DevSecOps Pipeline (GitHub Actions + AWS OIDC)"]
+        GHA["GitHub Actions\n1. Jest Unit/Integration Tests (65 tests)\n2. SonarQube Quality Gate\n3. npm audit & Trivy CVE Scan\n4. Build & Push Immutable SHA to Amazon ECR\n5. Deploy to EKS & Smoke Test (/healthz, /readyz)"]
+    end
 
-    classDef aws fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:black;
-    classDef k8s fill:#326CE5,stroke:#fff,stroke-width:2px,color:white;
-    classDef pod fill:#E6F0FA,stroke:#326CE5,stroke-width:1px,color:black;
-    class ALB,EBS aws;
-    class ClientService,APIService,DBService,CM,SEC k8s;
-    class ClientPod,APIPod,DBPod pod;
+    subgraph Observability["Observability & Incident Operations"]
+        PromGraf["Prometheus + Grafana\nApp Metrics (/metrics), Golden Signals & Alerts"]
+        CW["Amazon CloudWatch\nALB, EKS & RDS Metrics, Logs & Alarms"]
+    end
+
+    User --> R53 --> ALB
+    ACM -.->|TLS Cert| ALB
+    ALB -->|"Path: /*"| ClientSvc
+    ALB -->|"Path: /api/*"| APISvc
+    Config -.-> APISvc
+    APISvc -->|"TCP 5432 (TLS)"| RDS
+    GHA -->|"OIDC AssumeRole"| Private_App_Subnets
+    Private_App_Subnets -.-> PromGraf
+    AWS_VPC -.-> CW
 ```
 
 ---
 
-## 🛠 Technology Stack
+## ✅ Project Implementation Checklist (Phases 0–15)
 
-### Application Services
-* **Frontend:** React 17, Ant Design, React Router 6, Axios.
-* **Backend:** Node.js 18, Express 4, Sequelize ORM, JWT authentication, Bcrypt password hashing, Sharp image processing.
-* **Database:** PostgreSQL 15 (Alpine Linux).
-
-### DevOps & Infrastructure
-* **Containerization:** Docker Multi-Stage builds (`node:18-bullseye-slim` $\to$ `nginx:1.29-alpine`), Docker Compose with healthchecks.
-* **Orchestration:** Kubernetes (EKS), 10 YAML manifests (Deployments, Services, ConfigMaps, Secrets, PVCs).
-* **CI/CD Automation:** GitHub Actions (matrix parallel testing, SonarQube quality analysis, Trivy vulnerability scans).
-* **Testing:** Jest 29 + Supertest (62 total unit & integration tests) enforcing a 50% coverage threshold.
-* **Security & Quality:** Non-root containers (`USER node`), SonarQube LTS static analysis, Aqua Security Trivy.
-
----
-
-## 📂 Repository File Tree
-
-```
-FullStack-DevOps-Pipeline/
-├── apiserver/                       # Express REST API Server
-│   ├── __tests__/                   # Unit & Integration tests (43 tests)
-│   ├── controllers/                 # Route handlers (auth, skills, users)
-│   ├── middleware/                  # Auth verification, error handling, file uploads
-│   ├── models/                      # Sequelize ORM models
-│   ├── Dockerfile                   # node:18-slim, npm ci layer caching, USER node
-│   └── jest.config.js               # Jest coverage threshold configuration (50% min)
-│
-├── client/                          # React Frontend SPA
-│   ├── src/__tests__/               # Component unit tests (19 tests)
-│   ├── Dockerfile                   # Multi-stage: Node builder -> Nginx runtime (~23MB)
-│   └── nginx.conf                   # Reverse proxy configuration (try_files + proxy_pass)
-│
-├── k8s/                             # Kubernetes Production Manifests (10 YAMLs)
-│   ├── namespace.yaml               # node-react-app isolated namespace
-│   ├── configmap.yaml               # Non-sensitive configuration parameters
-│   ├── secret.yaml                  # Base64-encoded DB creds & JWT secrets
-│   ├── dbpvc.yaml                   # 3Gi PersistentVolumeClaim for PostgreSQL
-│   ├── dbdep.yaml / dbsrc.yaml      # PostgreSQL Deployment & ClusterIP Service
-│   ├── apidep.yaml / apisrc.yaml    # Express API Deployment & ClusterIP Service
-│   └── clientdep.yaml / clientsrc.yaml # React Client Deployment & LoadBalancer Service
-│
-├── docker-compose.yaml              # Local multi-container development with healthchecks
-├── sonar-project.properties         # SonarQube code quality analysis configuration
-├── ARCHITECTURE.md                  # Comprehensive Architecture Decision Records (ADR)
-└── interview-notes/                 # Complete 1–4 Year DevOps Interview Preparation Kit
-```
+| Phase | Stage Description | Status | Notes |
+| :--- | :--- | :--- | :--- |
+| **Phase 0** | Repository Audit, Git Hygiene (`.gitignore`/`.dockerignore`) & ADR-001 | **Tested** | Fixed `.config.env` Docker build leak; verified CLI tools & baseline tests |
+| **Phase 1** | App Verification, Env Standardization (`PORT=8010`, `DB_SSL`) & `/healthz` + `/readyz` | **Tested** | `46/46` API tests (8 suites) & `19/19` Client tests (9 suites) passing |
+| **Phase 2** | Multi-Stage Dockerfiles, Non-Root Execution & Image Security | **Planned** (Baseline files present) | Documented in [DEVOPS_IMPLEMENTATION_GUIDE.md](./DEVOPS_IMPLEMENTATION_GUIDE.md) |
+| **Phase 3** | Docker Compose, PostgreSQL Persistence & NGINX Reverse Proxy | **Planned** (Baseline files present) | Includes fix for NGINX `/api/` proxy trailing-slash path stripping |
+| **Phase 4** | Prometheus Metrics (`/metrics`), Grafana Dashboards & Alert Rules | **Planned** | PromQL queries, golden signals & alert rules documented |
+| **Phase 5** | Terraform Fundamentals, Modules, S3 Remote State & Native Locking | **Planned** | Uses Terraform `v1.15+` `use_lockfile = true` in `ap-south-1` |
+| **Phase 6** | AWS VPC, Public/Private/DB Subnets, NAT, Security Groups, IAM & ECR | **Planned** | Least-privilege SG chain (`alb-sg` $\to$ `eks-nodes-sg` $\to$ `rds-sg`) |
+| **Phase 7** | Amazon EKS Cluster, Managed Nodes, Deployments, Probes, HPA & PDB | **Planned** (Baseline `k8s/` present) | Fixes `k8s/secret.yaml` & `configmap.yaml` key mismatch |
+| **Phase 8** | Private Amazon RDS PostgreSQL, Secrets Manager, TLS & Backups | **Planned** | Uses `DB_SSL=true` & External Secrets Operator |
+| **Phase 9** | AWS Load Balancer Controller, Ingress, ALB & Path-Based Routing | **Planned** | Single ALB routing `/api/*` and `/*` to `ClusterIP` Services |
+| **Phase 10** | GitHub Actions CI/CD, AWS OIDC, Immutable Tags, Rollout & Rollback | **Planned** (Baseline CI present) | Eliminates static AWS keys via GitHub OIDC |
+| **Phase 11** | DevSecOps Gates (SonarQube, Trivy, Secret Scanning & RBAC) | **Planned** (Baseline scans present) | Fixes `vulnerabitlity-type` typo in workflow |
+| **Phase 12** | CloudWatch, Prometheus, Grafana & 9 Production Incident Playbooks | **Implemented** (Runbooks) | All 9 runbooks documented in [DEVOPS_IMPLEMENTATION_GUIDE.md](./DEVOPS_IMPLEMENTATION_GUIDE.md) |
+| **Phase 13** | Reliability Drills, Rolling Updates, Rollback, `k6` Load Tests & RTO/RPO | **Planned** (`k6` scripts present) | Self-healing, bad rollout rollback & RDS restore drills documented |
+| **Phase 14** | Sprint Workflow, PR Reviews, Workplace Communication & Interview Kit | **Implemented** | Complete Hinglish dictionary & interview defense in guide |
+| **Phase 15** | AWS Cost Optimisation, Workload Pause & Dependency-Ordered Teardown | **Implemented** | Documented in [AWS_COST_OPTIMIZATION_AND_CLEANUP.md](./AWS_COST_OPTIMIZATION_AND_CLEANUP.md) |
 
 ---
 
-## 🚀 Quick Start Guide
+## 🚀 Quick Start & Local Verification Commands
 
-### 1. Local Development with Docker Compose
+### 1. Run Automated Unit & Integration Tests (Phase 0 & Phase 1)
 
-```bash
-# 1. Clone the repository
-git clone https://github.com/sahil9079/node-react-postgres.git
-cd node-react-postgres
-
-# 2. Setup environment variables
-cp apiserver/example.env apiserver/.config.env
-
-# 3. Launch the full 3-tier stack
-docker-compose up -d
-
-# 4. Access the application:
-# Frontend UI:  http://localhost:80
-# Backend API:  http://localhost:8010/api/v1
-```
-
----
-
-### 2. Running Automated Tests & Coverage
-
-```bash
-# Run API Server tests (43 unit & integration tests)
+```powershell
+# 1. Run Backend API Tests (46 unit & integration tests including /healthz & /readyz)
 cd apiserver
-npm install
 npm test -- --coverage
 
-# Run React Client tests (19 component tests)
+# 2. Run Frontend React Tests (19 component & utility tests)
 cd ../client
-npm install
-npm test -- --coverage
+npm test -- --watchAll=false
+```
+
+### 2. Run the Full 3-Tier Stack Locally with Docker Compose
+
+```powershell
+# 1. Create your local environment file (ignored by Git and Docker build context)
+Copy-Item apiserver/example.env apiserver/.config.env
+
+# 2. Start PostgreSQL, Express API (port 8010), and React/NGINX (port 80)
+docker compose up --build -d
+
+# 3. Verify Liveness and Readiness Probes
+curl.exe -i http://localhost:8010/healthz
+curl.exe -i http://localhost:8010/readyz
+
+# 4. Stop local containers WITHOUT deleting PostgreSQL volume data (See Operation A)
+docker compose stop
 ```
 
 ---
 
-### 3. Deploying to Kubernetes (Amazon EKS)
+## 📚 Additional Interview Preparation Resources in Repository
 
-```bash
-# 1. Create the dedicated namespace
-kubectl apply -f k8s/namespace.yaml
-
-# 2. Deploy all configuration and workload manifests
-kubectl apply -f k8s/ -n node-react-app
-
-# 3. Verify deployment health
-kubectl get pods -n node-react-app -o wide
-kubectl get svc client-service -n node-react-app
-```
-
----
-
-## 📚 DevOps Technical Interview Preparation Kit
-
-The repository includes a comprehensive, project-grounded interview preparation suite inside [`interview-notes/`](file:///d:/javascript_project/node-react-postgres/interview-notes/):
-
-* **[01-level-1-fundamentals/](interview-notes/01-level-1-fundamentals/)** — 1-Year Associate DevOps (Linux, Git, Dockerfiles, K8s manifests).
-* **[02-level-2-intermediate/](interview-notes/02-level-2-intermediate/)** — 2-Year Mid-Level DevOps ("Why & How" decisions, Request flow, Terraform remote state).
-* **[03-level-3-production-incidents/](interview-notes/03-level-3-production-incidents/)** — 3–3.5-Year Senior Operations (HTTP 500/502 triage, CrashLoopBackOff, Memory leaks, Emergency rollbacks, 5-Whys RCA).
-* **[04-level-4-system-design-and-architecture/](interview-notes/04-level-4-system-design-and-architecture/)** — 4-Year Platform Architect (Scaling to 1M users, S3+CloudFront, Multi-AZ RDS, Karpenter autoscaling, SRE SLOs).
-* **[05-project-deep-dive/](interview-notes/05-project-deep-dive/)** — Project defense, 60-second elevator pitch, and real troubleshooting stories.
-* **[README.md](interview-notes/README.md)** — Master roadmap and revision index.
+* **[DEVOPS_IMPLEMENTATION_GUIDE.md](./DEVOPS_IMPLEMENTATION_GUIDE.md)** — Master Hinglish DevOps Implementation Manual & 48-Term Official Glossary.
+* **[AWS_COST_OPTIMIZATION_AND_CLEANUP.md](./AWS_COST_OPTIMIZATION_AND_CLEANUP.md)** — AWS FinOps, Safe Pause & Dependency-Ordered Teardown Guide.
+* **[interview-notes/](./interview-notes/README.md)** & **[DevOps-Interview-Preparation/](./DevOps-Interview-Preparation/README.md)** — Deep-dive study notes across Linux, Networking, Docker, Kubernetes, AWS, and Terraform.

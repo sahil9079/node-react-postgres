@@ -3,15 +3,15 @@ var PORT,
     CLIENT_URL
 
 if (process.env.NODE_ENV === 'production') {
-    PORT = process.env.PORT_PROD
+    PORT = process.env.PORT || process.env.PORT_PROD || 8010
     API_URL = process.env.API_URL_PROD
     CLIENT_URL = process.env.CLIENT_URL_PROD
 } else if (process.env.NODE_ENV === 'test') {
-    PORT = process.env.PORT_TEST
+    PORT = process.env.PORT || process.env.PORT_TEST || 8011
     API_URL = process.env.API_URL_TEST
     CLIENT_URL = process.env.CLIENT_URL_TEST
 } else {
-    PORT = process.env.PORT_DEV
+    PORT = process.env.PORT || process.env.PORT_DEV || 8010
     API_URL = "http://localhost:" + PORT
     CLIENT_URL = process.env.CLIENT_URL_DEV
 }

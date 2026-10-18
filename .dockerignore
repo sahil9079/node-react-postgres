@@ -5,6 +5,9 @@ npm-debug.log
 .DS_Store
 build
 .env
+.config.env
+*.env
+!example.env
 .env.local
 .env.*.local
 coverage
@@ -18,3 +21,11 @@ dist
 .next
 .nuxt
 .turbo
+infra
+k8s
+interview-notes
+DevOps-Interview-Preparation
+*.tfstate*
+trivy-report*.json
+npm-audit*.json
+

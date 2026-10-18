@@ -5,9 +5,14 @@ npm-debug.log
 .DS_Store
 build
 .env
+.config.env
+*.env
+!example.env
 .env.local
 .env.*.local
 coverage
+npm-audit*.json
+trivy-report*.json
 .vscode
 .idea
 dist

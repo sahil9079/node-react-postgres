@@ -1,5 +1,7 @@
 const Sequelize = require("sequelize");
 
+const useSSL = process.env.DB_SSL === "true";
+
 // creating the db instance
 const sampledb = new Sequelize({
     dialect: 'postgres',
@@ -9,6 +11,14 @@ const sampledb = new Sequelize({
     database: process.env.DB_NAME,
     port: process.env.DB_PORT,
     logging: false,
+    dialectOptions: useSSL
+        ? {
+              ssl: {
+                  require: true,
+                  rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === "true"
+              }
+          }
+        : {},
     define: {
         underscored: true, // use snake_case for all fields in the database
         // freezeTableName: true, //stop the auto-pluralization performed by Sequelize
