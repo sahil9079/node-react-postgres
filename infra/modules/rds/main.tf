@@ -67,3 +67,27 @@ output "rds_endpoint" {
 output "rds_port" {
   value = aws_db_instance.postgres.port
 }
+
+resource "aws_secretsmanager_secret" "app_credentials" {
+  name                    = "prod/node-react-app/credentials"
+  description             = "RDS PostgreSQL and JWT/Session credentials synced into EKS via External Secrets Operator"
+  recovery_window_in_days = 0
+}
+
+resource "aws_secretsmanager_secret_version" "app_credentials" {
+  secret_id = aws_secretsmanager_secret.app_credentials.id
+  secret_string = jsonencode({
+    DB_USER                = var.db_username
+    DB_PASS                = var.db_password
+    JWT_VERIFY_SECRET      = "replace-in-aws-secrets-manager-jwt-verify"
+    JWT_SESSION_SECRET     = "replace-in-aws-secrets-manager-jwt-session"
+    JWT_REFRESH_SECRET     = "replace-in-aws-secrets-manager-jwt-refresh"
+    SESSION_ENCRYPT_SECRET = "replace-in-aws-secrets-manager-session-enc"
+  })
+}
+
+output "credentials_secret_arn" {
+  value       = aws_secretsmanager_secret.app_credentials.arn
+  description = "ARN of the AWS Secrets Manager secret consumed by ExternalSecret"
+}
+

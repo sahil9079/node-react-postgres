@@ -4,10 +4,26 @@ metadata:
   name: apiserver-service
   namespace: node-react-app
 spec:
-  type: ClusterIP   
+  type: ClusterIP
   selector:
-    app: apiserver     
+    app: apiserver
   ports:
     - protocol: TCP
-      port: 8010 
+      port: 8010
       targetPort: apiserver-port
+---
+# Service alias matching Docker Compose service name ("apiserver")
+# Prevents NGINX startup crash ("host not found in upstream apiserver") in client Pods
+apiVersion: v1
+kind: Service
+metadata:
+  name: apiserver
+  namespace: node-react-app
+spec:
+  type: ClusterIP
+  selector:
+    app: apiserver
+  ports:
+    - protocol: TCP
+      port: 8010
+      targetPort: apiserver-port

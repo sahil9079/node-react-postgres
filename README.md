@@ -13,9 +13,11 @@ A production-style, 3-tier **Skills Management Platform** (**React 17 + Node.js/
 
 ## 📘 Essential DevOps Engineering Manuals (Start Here!)
 
+0. 👉 **[HOW_TO_READ_AND_MASTER_THIS_PROJECT.md](./HOW_TO_READ_AND_MASTER_THIS_PROJECT.md)** — **Fresher-to-Senior DevOps Reading Order & Self-Implementation Guide**: Exact 12-step file reading order, ports/env map, complete code explanations, and 6 hands-on break-and-fix drills you can run yourself.
 1. 👉 **[DEVOPS_IMPLEMENTATION_GUIDE.md](./DEVOPS_IMPLEMENTATION_GUIDE.md)** — **Complete Step-by-Step Hinglish Implementation Manual (Phases 0 to 15)**, including the **48-Term Official DevOps Dictionary**, exact commands, architecture decisions, 9 production incident runbooks, and interview Q&A.
 2. 👉 **[AWS_COST_OPTIMIZATION_AND_CLEANUP.md](./AWS_COST_OPTIMIZATION_AND_CLEANUP.md)** — **FinOps Cost Control, Workload Pause & Dependency-Ordered Teardown Guide** covering Operation A (Local stop without data loss), Operation B (Temporary AWS pause), and Operation C (Safe teardown + 11 post-destroy AWS CLI checks).
 3. 👉 **[docs/adr/ADR-001-architecture-and-devops-evolution.md](./docs/adr/ADR-001-architecture-and-devops-evolution.md)** — **Architecture Decision Record** explaining Private RDS vs. in-cluster DB, Single ALB Ingress vs. Service LoadBalancer, and `/healthz` vs. `/readyz`.
+
 
 ---
 
@@ -123,8 +125,34 @@ docker compose stop
 
 ---
 
-## 📚 Additional Interview Preparation Resources in Repository
+## 📚 Audit Reports & Beginner-to-3+ Years Interview Preparation Program
 
-* **[DEVOPS_IMPLEMENTATION_GUIDE.md](./DEVOPS_IMPLEMENTATION_GUIDE.md)** — Master Hinglish DevOps Implementation Manual & 48-Term Official Glossary.
-* **[AWS_COST_OPTIMIZATION_AND_CLEANUP.md](./AWS_COST_OPTIMIZATION_AND_CLEANUP.md)** — AWS FinOps, Safe Pause & Dependency-Ordered Teardown Guide.
-* **[interview-notes/](./interview-notes/README.md)** & **[DevOps-Interview-Preparation/](./DevOps-Interview-Preparation/README.md)** — Deep-dive study notes across Linux, Networking, Docker, Kubernetes, AWS, and Terraform.
+### Repository Audit & Verification Reports (`docs/`)
+* **[docs/REPOSITORY_INVENTORY.md](./docs/REPOSITORY_INVENTORY.md)** — Complete repository directory tree, file inventory, toolchain versions & dependency catalog.
+* **[docs/COMPLETE_REPOSITORY_REVIEW.md](./docs/COMPLETE_REPOSITORY_REVIEW.md)** — Exhaustive file-by-file and cross-file audit (`F-01` to `F-10`) with severity ratings.
+* **[docs/BASELINE_VALIDATION.md](./docs/BASELINE_VALIDATION.md)** — Executed baseline test & validation outputs (`53/53` API tests, `19/19` Client tests, Compose, Kustomize, Terraform).
+* **[docs/CODE_REVIEW_REPORT.md](./docs/CODE_REVIEW_REPORT.md)** — Controlled fix report, line-by-line explanations, and residual architectural risks.
+* **[docs/AWS_COST_OPTIMIZATION_AND_CLEANUP.md](./docs/AWS_COST_OPTIMIZATION_AND_CLEANUP.md)** — AWS FinOps, idle cost analysis, temporary pause & dependency-ordered teardown runbook.
+
+### 16-Module Structured Learning & 60-Scenario Interview Curriculum (`docs/devops-interview-preparation/`)
+1. **[00-LEARNING-ROADMAP.md](./docs/devops-interview-preparation/00-LEARNING-ROADMAP.md)** — 4-Level progression (Fresher $\to$ Junior $\to$ Intermediate $\to$ ~3+ Years).
+2. **[01-LINUX-AND-NETWORKING.md](./docs/devops-interview-preparation/01-LINUX-AND-NETWORKING.md)** — Processes (`PID 1`, `SIGTERM`), permissions (`UID 1000`), DNS & NGINX reverse proxy.
+3. **[02-GIT-AND-GITHUB.md](./docs/devops-interview-preparation/02-GIT-AND-GITHUB.md)** — `.gitignore`/`.dockerignore` hygiene, PR gates, and secret remediation.
+4. **[03-DOCKER-AND-COMPOSE.md](./docs/devops-interview-preparation/03-DOCKER-AND-COMPOSE.md)** — Multi-stage builds, layer caching, 3-tier bridge networks, and `stop` vs `down -v`.
+5. **[04-CI-CD-AND-GITHUB-ACTIONS.md](./docs/devops-interview-preparation/04-CI-CD-AND-GITHUB-ACTIONS.md)** — CI matrix, coverage artifacts, AWS OIDC `AssumeRoleWithWebIdentity` & rollout undo.
+6. **[05-AWS-AND-CLOUD-INFRASTRUCTURE.md](./docs/devops-interview-preparation/05-AWS-AND-CLOUD-INFRASTRUCTURE.md)** — `ap-south-1` 3-tier VPC, NAT trade-offs, SG chaining, ECR & Private RDS.
+7. **[06-TERRAFORM-AND-IAC.md](./docs/devops-interview-preparation/06-TERRAFORM-AND-IAC.md)** — S3 bootstrap, native state locking (`use_lockfile = true`), modules & drift detection.
+8. **[07-KUBERNETES-AND-EKS.md](./docs/devops-interview-preparation/07-KUBERNETES-AND-EKS.md)** — Deployments, `ClusterIP` Services, ALB Ingress, `/healthz` vs `/readyz`, HPA, PDB & Kustomize.
+9. **[08-DEVSECOPS-AND-SECURITY.md](./docs/devops-interview-preparation/08-DEVSECOPS-AND-SECURITY.md)** — SonarQube SAST, `npm audit` SCA, Trivy filesystem/image scans, IRSA & RBAC.
+10. **[09-MONITORING-AND-OBSERVABILITY.md](./docs/devops-interview-preparation/09-MONITORING-AND-OBSERVABILITY.md)** — Four Golden Signals, `/metrics` cardinality normalization, PromQL, Grafana & SLIs/SLOs.
+11. **[10-PRODUCTION-TROUBLESHOOTING.md](./docs/devops-interview-preparation/10-PRODUCTION-TROUBLESHOOTING.md)** — Structured runbooks for `502`/`503`, `CrashLoopBackOff`, `OOMKilled`, and DB pool exhaustion.
+12. **[11-REAL-WORLD-SCENARIO-QUESTIONS.md](./docs/devops-interview-preparation/11-REAL-WORLD-SCENARIO-QUESTIONS.md)** — **60 Scenario-Based Questions** (15 per level × 4 levels) with separated hints and solutions.
+13. **[12-ADVANCED-3-YEARS-EXPERIENCE.md](./docs/devops-interview-preparation/12-ADVANCED-3-YEARS-EXPERIENCE.md)** — Architectural trade-offs, DB connection pool math, and zero-downtime migrations.
+14. **[13-DEVOPS-TERMINOLOGY-AND-COMMUNICATION.md](./docs/devops-interview-preparation/13-DEVOPS-TERMINOLOGY-AND-COMMUNICATION.md)** — Official glossary + cross-team communication templates.
+15. **[14-MOCK-INTERVIEW-AND-SCORECARD.md](./docs/devops-interview-preparation/14-MOCK-INTERVIEW-AND-SCORECARD.md)** — Interactive 1-question-at-a-time mock interview mode & scorecard.
+16. **[15-AWS-COST-OPTIMIZATION-AND-CLEANUP.md](./docs/devops-interview-preparation/15-AWS-COST-OPTIMIZATION-AND-CLEANUP.md)** — FinOps interview synthesis & teardown defense.
+
+### Additional Study Archives in Repository
+* **[DEVOPS_IMPLEMENTATION_GUIDE.md](./DEVOPS_IMPLEMENTATION_GUIDE.md)** & **[AWS_COST_OPTIMIZATION_AND_CLEANUP.md](./AWS_COST_OPTIMIZATION_AND_CLEANUP.md)**
+* **[interview-notes/](./interview-notes/README.md)** & **[DevOps-Interview-Preparation/](./DevOps-Interview-Preparation/README.md)**
+

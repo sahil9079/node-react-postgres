@@ -9,6 +9,9 @@ resources:
   - rbac.yaml
   - configmap.yaml
   - secret.yaml
+  - dbpvc.yaml
+  - dbdep.yaml
+  - dbsrc.yaml
   - apidep.yaml
   - apisrc.yaml
   - clientdep.yaml
@@ -16,3 +19,4 @@ resources:
   - ingress.yaml
   - hpa.yaml
   - pdb.yaml
+

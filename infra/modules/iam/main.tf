@@ -78,3 +78,49 @@ output "github_actions_role_arn" {
   value       = aws_iam_role.github_actions_deploy.arn
   description = "IAM Role ARN for GitHub Actions OIDC authentication"
 }
+
+resource "aws_iam_role" "workload_irsa" {
+  name = "${var.project_name}-${var.environment}-workload-irsa-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "pods.eks.amazonaws.com"
+        }
+        Action = [
+          "sts:AssumeRole",
+          "sts:TagSession"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "workload_secrets_access" {
+  name = "${var.project_name}-${var.environment}-secretsmanager-read-policy"
+  role = aws_iam_role.workload_irsa.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "ReadAppCredentialsSecret"
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ]
+        Resource = "arn:aws:secretsmanager:*:*:secret:prod/node-react-app/credentials*"
+      }
+    ]
+  })
+}
+
+output "workload_irsa_role_arn" {
+  value       = aws_iam_role.workload_irsa.arn
+  description = "IAM Role ARN for EKS ServiceAccount (skills-app-sa) Secrets Manager access"
+}
+

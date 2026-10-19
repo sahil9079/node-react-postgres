@@ -50,24 +50,30 @@ jobs:
     name: SonarQube Code Quality Gate
     needs: testing
     runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Download Coverage Artifacts
+      - name: Download Backend Coverage Artifact to apiserver/coverage
         uses: actions/download-artifact@v4
         with:
-          pattern: coverage-*
-          merge-multiple: false
+          name: coverage-apiserver
+          path: apiserver/coverage
+
+      - name: Download Frontend Coverage Artifact to client/coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-client
+          path: client/coverage
 
       - name: Run SonarQube / SonarCloud Analysis
         if: ${{ env.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarqube-scan-action@v5.2.0
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   security_and_containers:
     name: DevSecOps Dependency, Secret & Container Image Scan
@@ -116,8 +122,19 @@ jobs:
           vuln-type: "os,library"
           severity: "CRITICAL,HIGH"
 
+      - name: Run Trivy Container Image Scan (client)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "skills-client:${{ github.sha }}"
+          format: "table"
+          exit-code: "0"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"
+
       - name: Upload Trivy Security Reports
         uses: actions/upload-artifact@v4
         with:
           name: trivy-scan-results
           path: trivy-fs-report.json
+

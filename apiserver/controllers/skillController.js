@@ -96,7 +96,7 @@ exports.updateSkillById = catchAsync(async (req, res, next) => {
             let loopTime = oldOptions.length > locationOptions.length ? oldOptions.length : locationOptions.length;
             for (let i = 0; i < loopTime; i++) {
                 if (locationOptions[i]) {
-                    if (oldOptions.indexOf(locationOptions[i] < 0)) {
+                    if (oldOptions.indexOf(locationOptions[i]) < 0) {
                         await LocationOption.create({
                             option: locationOptions[i],
                             skillId: skill.id
@@ -104,7 +104,7 @@ exports.updateSkillById = catchAsync(async (req, res, next) => {
                     }
                 };
                 if (oldOptions[i]) {
-                    if (locationOptions.indexOf(oldOptions[i] < 0)) {
+                    if (locationOptions.indexOf(oldOptions[i]) < 0) {
                         await LocationOption.destroy({
                             where: { id: oldOptions[i].id }
                         })
